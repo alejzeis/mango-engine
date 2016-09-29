@@ -38,7 +38,7 @@
 			},
 			"versions": [
 				"mango_GLBackend",
-				"mango_vulkanBackend"
+				"mango_VKBackend"
 			]
 		}
 	]
