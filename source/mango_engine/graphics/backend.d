@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
 */
-module mango_engine.backend;
+module mango_engine.graphics.backend;
 
 /++
     Base class for a video backend implementation.
@@ -52,5 +52,13 @@ class LibraryLoadException : Exception {
     /// Default constructor
     this(in string library, in string message) {
         super("Failed to laod library \"" ~ library ~ "\": " ~ message);
+    }
+}
+
+/// BackendException is called when there is a failure in the backend.
+class BackendException : Exception {
+    /// Default constructor
+    this(in string message) {
+        super(message);
     }
 }

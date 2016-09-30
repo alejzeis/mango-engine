@@ -13,44 +13,22 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
 */
-module mango_engine.opengl.gl_backend;
+module mango_engine.graphics.vulkan.vk_backend;
 
-import mango_engine.backend;
+import mango_engine.graphics.backend;
 
-import derelict.opengl3.gl3;
-import derelict.glfw3.glfw3;
+version(mango_VKBackend) import erupted;
+
+import derelict.glfw3;
 import derelict.freeimage.freeimage;
 
-import std.conv : to;
+version(mango_VKBackend) mixin DerelictGLFW3_VulkanBind;
 
-/++
-    The OpenGL Backend implementation for mango_engine.
-
-    Loads the following libraries:
-        OpenGL
-        GLFW 3
-        FreeImage
-    On Windows libraries will be loaded
-    from the "lib" directory (should be placed in current directory),
-    with the exception of OpenGL (see below).
-    
-    loadLibraries() accepts the following keys, values:
-        "gl_useProvided" =  ONLY ON WINDOWS:
-                                Attempts to load opengl32.dll from the
-                                DLL library folder "lib" (by default it is loaded from the system). 
-                                Set to "true" if you want to load the OpenGL DLL from here.
-                                Useful for using a software renderer such as LLVMpipe.
-+/
-class GLBackend : Backend {
-
+class VKBackend : Backend {
     override {
         shared void loadLibraries(in string[string] args = null) @system {
             checkSupport();
-
-            if("gl_useProvided" in args && to!bool(args["gl_useProvided"]) == true) {
-                loadGL(true);
-            } else loadGL(false);
-
+            
             loadGLFW();
             loadFI();
         }
@@ -60,39 +38,27 @@ class GLBackend : Backend {
                 // GLFW failed to initalize
                 throw new LibraryLoadException("GLFW", "glfwInit() Failed!");
             }
-        }
 
-        shared void doDestroy() @system {
-            glfwTerminate();
-        }
-    }
-
-    private shared void loadGL(bool useProvided) @system { // Load code for OpenGL
-        version(Windows) {
-            //------------------------------- Windows Load Code
-            try {
-                if(useProvided) {
-                    DerelictGL3.load("lib\\opengl32.dll"); // Use provided DLL
-                } else DerelictGL3.load();
-
-            } catch(Exception e) {
-                throw new LibraryLoadException("OpenGL", e.toString());
-            }
-            //------------------------------- End Windows Load Code
-        } else { // All other OS
-            try {
-                DerelictGL3.load();
-            } catch(Exception e) {
-                throw new LibraryLoadException("OpenGL", e.toString());
+            if(!glfwVulkanSupported()) {
+                throw new BackendException("GLFW: Vulkan is not supported on this system!");
             }
         }
     }
-
+    
+    private shared void loadVulkan() @system {
+        try {
+            
+        } catch(Exception e) {
+            throw new LibraryLoadException("Vulkan", e.toString());
+        }
+    }
+    
     private shared void loadGLFW() @system { // Load code for GLFW
         version(Windows) {
             //------------------------------- Windows Load Code
             try {
                 DerelictGLFW3.load("lib\\glfw3.dll");
+                DerelictGLFW3_loadVulkan();
             } catch(Exception e) {
                 throw new LibraryLoadException("GLFW", e.toString());
             }
@@ -100,6 +66,7 @@ class GLBackend : Backend {
         } else { // All other OS
             try {
                 DerelictGLFW3.load();
+                version(mango_VKBackend) DerelictGLFW3_loadVulkan();
             } catch(Exception e) {
                 throw new LibraryLoadException("GLFW", e.toString());
             }
@@ -123,10 +90,10 @@ class GLBackend : Backend {
             }
         }
     }
+    
+    private shared void checkSupport() @system { // Check if we were compiled with Vulkan support.
+        version(mango_VKBackend) {
 
-    private shared void checkSupport() @system { // Check if we were compiled with OpenGL support.
-        version(mango_GLBackend) {
-
-        } else throw new Exception("Mango-Engine was not compiled with OpenGL backend support!");
+        } else throw new Exception("Mango-Engine was not compiled with Vulkan backend support!");
     }
 }

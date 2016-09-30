@@ -5,7 +5,7 @@
 		"derelict-al": "1.0.2",
 		"derelict-fi": "2.0.2",
 		"derelict-gl3": "1.0.19",
-		"derelict-glfw3": "~3.2",
+		"derelict-glfw3": "3.1.0",
 		"derelict-util": "2.0.6",
 		"derelict_extras-sndfile": "2.0.1",
 		"erupted": "1.4.3",

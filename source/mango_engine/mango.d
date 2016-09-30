@@ -16,9 +16,23 @@
 module mango_engine.mango;
 
 version(mango_GLBackend) {
-    import mango_engine.opengl.gl_backend;
+    import mango_engine.graphics.opengl.gl_backend;
     
     private shared GLBackend glBackend;
+}
+
+version(mango_VKBackend) {
+    import mango_engine.graphics.vulkan.vk_backend;
+
+    private shared VKBackend vkBackend;
+}
+
+/// Enum to represent different Graphics APIs used by the backend.
+enum GraphicsBackendType {
+    /// The OpenGL API.
+    API_OPENGL,
+    /// The Vulkan API.
+    API_VULKAN
 }
 
 /++
@@ -63,17 +77,28 @@ bool mango_hasInitialized() @safe nothrow {
     load system libraries and set up
     the engine for usage.
 +/
-void mango_init() @system {
+void mango_init(GraphicsBackendType backendType) @system {
     debug(mango_debug_sysInfo) {
         import std.stdio : writeln;
         writeln("[DEBUG/MangoEngine]: Initalizing engine...");
     }
 
-    version(mango_GLBackend) {
-        glBackend = new GLBackend();
-        glBackend.loadLibraries(); // TODO: ARGS
+    final switch(backendType) {
+        case GraphicsBackendType.API_OPENGL:
+            version(mango_GLBackend) {
+                glBackend = new GLBackend();
+                glBackend.loadLibraries(); // TODO: ARGS
 
-        glBackend.doInit();
+                glBackend.doInit();
+            } else throw new Exception("Mango-Engine was not compiled with OpenGL support!");
+            break;
+        case GraphicsBackendType.API_VULKAN:
+            version(mango_VKBackend) {
+                vkBackend = new VKBackend();
+                vkBackend.loadLibraries();
+
+                vkBackend.doInit();
+            } else throw new Exception("Mango-Engine was not compiled with Vulkan support!");
     }
 }
 
@@ -83,6 +108,12 @@ void mango_init() @system {
 +/
 void mango_destroy() @system {
     version(mango_GLBackend) {
-        glBackend.doDestroy();
+        if(glBackend !is null)
+            glBackend.doDestroy();
+    }
+
+    version(mango_VKBackend) {
+        if(vkBackend !is null)
+            vkBackend.doDestroy();
     }
 }
