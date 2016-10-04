@@ -28,8 +28,8 @@ alias gl_check = checkSupport;
 class GLWindow : Window {
     private GLFWwindow* window;
 
-    this(in string title, in uint width, in uint height) @safe {
-        super(title, width, height);
+    this(in string title, in uint width, in uint height, SyncType syncType) @safe {
+        super(title, width, height, syncType);
         gl_check();
 
         createWindow();
@@ -60,6 +60,19 @@ class GLWindow : Window {
     override {
         void updateBuffers() @system {
             glfwSwapBuffers(window);
+        }
+
+        protected void setSync_(in SyncType syncType) @system {
+            final switch(syncType) {
+                case SyncType.SYNC_NONE:
+                    glfwSwapInterval(0);
+                    break;
+                case SyncType.SYNC_VSYNC:
+                    glfwSwapInterval(1);
+                    break;
+                case SyncType.SYNC_ADAPTIVE:
+                    throw new Exception("Adaptive Sync not implemented!");
+            }
         }
 
         protected void setTitle_(in string title) @system {

@@ -52,6 +52,7 @@ class VKBackend : Backend {
         }
     }
     
+    /*
     private shared void loadVulkan() @system {
         try {
             
@@ -59,13 +60,14 @@ class VKBackend : Backend {
             throw new LibraryLoadException("Vulkan", e.toString());
         }
     }
+    */
     
     private shared void loadGLFW() @system { // Load code for GLFW
         version(Windows) {
             //------------------------------- Windows Load Code
             try {
                 DerelictGLFW3.load("lib\\glfw3.dll");
-                DerelictGLFW3_loadVulkan();
+                version(mango_VKBackend) DerelictGLFW3_loadVulkan();
             } catch(Exception e) {
                 throw new LibraryLoadException("GLFW", e.toString());
             }
