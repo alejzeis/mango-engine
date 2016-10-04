@@ -29,6 +29,8 @@ import std.conv : to;
 immutable uint MANGO_GL_VERSION_MAJOR = 3;
 /// The Minor OpenGL version used by mango-engine.
 immutable uint MANGO_GL_VERSION_MINOR = 3;
+/// The Whole OpenGL version used by mango-engine.
+immutable GLVersion MANGO_GL_VERSION = GLVersion.GL33;
 
 package void checkSupport() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
@@ -44,9 +46,10 @@ extern(C) private void glfwErrorCallback(int error, const char* description) @sy
 }
 
 ShouldThrow derelictShouldThrow(string symbolName) {
+    // For now we will ignore missing symbols, TODO: FIX!
     debug {
         import std.stdio;
-        writeln("Symbol: " ~ symbolName);
+        writeln("Derelict: MISSING SYMBOL! " ~ symbolName);
     }
     return ShouldThrow.No;
 }
@@ -70,6 +73,11 @@ ShouldThrow derelictShouldThrow(string symbolName) {
                                 Useful for using a software renderer such as LLVMpipe.
 +/
 class GLBackend : Backend {
+
+    /// Loads the core methods of OpenGL (1.1+)
+    static void loadCoreMethods() @system {
+        DerelictGL3.reload();
+    }
 
     override {
         shared void loadLibraries(in string[string] args = null) @system {

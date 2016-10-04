@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016 Mango-Engine Team
+ *  
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *  
+ *  	http://www.apache.org/licenses/LICENSE-2.0
+ *  
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+*/
 module mango_engine.graphics.window;
 
 import mango_engine.mango;
@@ -18,22 +33,35 @@ abstract class Window {
     }
 
     /++
+        Create a new window based on the GraphicsBackendType.
+        If the backend has not been compiled into mango-engine,
+        an exception will be thrown.
+
+        Params:
+                title =     The title of the Window.
+                width =     The width of the window (in pixels)
+                height =    The height of the window (in pixels)
+                backend =   The Backend to use for rendering. This needs
+                            to be consistent across your application,
+                            or else there will be strange bugs.
+                            
+        Throws: Exception if no backends are avaliable.
     +/
     static Window windowFactory(in string title, in uint width, in uint height, GraphicsBackendType backend) @safe {
         version(mango_GLBackend) {
-            import mango_engine.graphics.opengl.gl_window;
+            import mango_engine.graphics.opengl.gl_window : GLWindow;
             
             if(backend == GraphicsBackendType.API_OPENGL)
                 return new GLWindow(title, width, height);
         }
         /*
         version(mango_VKBackend) {
-            import mango_engine.graphics.vulkan.vk_window;
+            import mango_engine.graphics.vulkan.vk_window : VKWindow;
             if(backend == GraphicsBackendType.API_VULKAN)
                 return new VKWindow(title, width, height);
         }
         */
-        throw new Exception("No backends avaliable!");
+        throw new Exception("No backends avaliable, was it compiled in?");
     }
 
     /// The title of the Window.
@@ -55,6 +83,7 @@ abstract class Window {
         resize_(width, height);
     }
 
+    abstract void updateBuffers() @system;
     protected abstract void setTitle_(in string title) @system;
     protected abstract void resize_(in uint width, in uint height) @system;
 }
