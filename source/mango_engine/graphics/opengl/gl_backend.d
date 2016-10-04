@@ -15,13 +15,41 @@
 */
 module mango_engine.graphics.opengl.gl_backend;
 
+import mango_engine.mango;
 import mango_engine.graphics.backend;
 
 version(mango_GLBackend) import derelict.opengl3.gl3;
 import derelict.glfw3.glfw3;
 import derelict.freeimage.freeimage;
+import derelict.util.exception;
 
 import std.conv : to;
+
+/// The Major OpenGL version used by mango-engine.
+immutable uint MANGO_GL_VERSION_MAJOR = 3;
+/// The Minor OpenGL version used by mango-engine.
+immutable uint MANGO_GL_VERSION_MINOR = 3;
+
+package void checkSupport() @safe { // Check if we were compiled with OpenGL support.
+    if(!mango_hasGLSupport()) {
+        throw new Exception("Mango-Engine was not compiled with OpenGL backend support!");
+    }
+}
+
+extern(C) private void glfwErrorCallback(int error, const char* description) @system {
+    import std.stdio : writeln;
+    import blocksound.util : toDString;
+
+    writeln("[MangoEngine]: GLFW ERROR! ", error, " ", toDString(description));
+}
+
+ShouldThrow derelictShouldThrow(string symbolName) {
+    debug {
+        import std.stdio;
+        writeln("Symbol: " ~ symbolName);
+    }
+    return ShouldThrow.No;
+}
 
 /++
     The OpenGL Backend implementation for mango_engine.
@@ -56,6 +84,8 @@ class GLBackend : Backend {
         }
 
         shared void doInit() @system {
+            glfwSetErrorCallback(cast(GLFWerrorfun) &glfwErrorCallback);
+
             if(!glfwInit()) {
                 // GLFW failed to initalize
                 throw new LibraryLoadException("GLFW", "glfwInit() Failed!");
@@ -100,6 +130,7 @@ class GLBackend : Backend {
             }
             //------------------------------- End Windows Load Code
         } else { // All other OS
+            DerelictGLFW3.missingSymbolCallback = &derelictShouldThrow;
             try {
                 DerelictGLFW3.load();
             } catch(Exception e) {
@@ -118,17 +149,12 @@ class GLBackend : Backend {
             }
             //------------------------------- End Windows Load Code
         } else { // All other OS
+            DerelictFI.missingSymbolCallback = &derelictShouldThrow;
             try {
                 DerelictFI.load();
             } catch(Exception e) {
                 throw new LibraryLoadException("FreeImage", e.toString());
             }
         }
-    }
-
-    private shared void checkSupport() @system { // Check if we were compiled with OpenGL support.
-        version(mango_GLBackend) {
-
-        } else throw new Exception("Mango-Engine was not compiled with OpenGL backend support!");
     }
 }

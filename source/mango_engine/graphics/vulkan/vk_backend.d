@@ -15,6 +15,7 @@
 */
 module mango_engine.graphics.vulkan.vk_backend;
 
+import mango_engine.mango;
 import mango_engine.graphics.backend;
 
 version(mango_VKBackend) import erupted;
@@ -23,6 +24,12 @@ import derelict.glfw3;
 import derelict.freeimage.freeimage;
 
 version(mango_VKBackend) mixin DerelictGLFW3_VulkanBind;
+
+package void checkSupport() @safe { // Check if we were compiled with Vulkan support.
+    if(!mango_hasVKSupport()) {
+        throw new Exception("Mango-Engine was not compiled with Vulkan Support!");
+    }
+}
 
 class VKBackend : Backend {
     override {
@@ -89,11 +96,5 @@ class VKBackend : Backend {
                 throw new LibraryLoadException("FreeImage", e.toString());
             }
         }
-    }
-    
-    private shared void checkSupport() @system { // Check if we were compiled with Vulkan support.
-        version(mango_VKBackend) {
-
-        } else throw new Exception("Mango-Engine was not compiled with Vulkan backend support!");
     }
 }
