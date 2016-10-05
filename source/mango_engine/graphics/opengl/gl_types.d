@@ -32,6 +32,7 @@
 module mango_engine.graphics.opengl.gl_types;
 
 import mango_engine.graphics.model : Vertex;
+import mango_engine.graphics.opengl.gl_backend : gl_check;
 
 import derelict.opengl3.gl3;
 
@@ -101,7 +102,9 @@ struct VAO {
 
         Returns: A new, empty VAO.
     +/
-    static VAO generateNew() @trusted nothrow {
+    static VAO generateNew() @trusted {
+        gl_check();
+        
         GLuint id;
         glGenVertexArrays(1, &id);
 
@@ -145,7 +148,9 @@ struct VBO {
                 type =  The type (or target) of the buffer,
                         ex. GL_ARRAY_BUFFER.
     +/
-    this(GLenum type) @trusted nothrow {
+    this(GLenum type) @trusted {
+        gl_check();
+        
         _type = type;
 
         glGenBuffers(1, &_vbo);

@@ -39,8 +39,6 @@ import blocksound.util : toCString, toDString;
 import derelict.glfw3;
 import derelict.opengl3.gl3 : glGetString, GL_VERSION;
 
-alias gl_check = checkSupport;
-
 class GLWindow : Window {
     private GLFWwindow* window;
 

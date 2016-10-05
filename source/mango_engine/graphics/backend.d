@@ -31,6 +31,25 @@
 */
 module mango_engine.graphics.backend;
 
+template GenFactory(string object_, string params) {
+    const char[] GenFactory = "
+    version(mango_GLBackend) {
+        import mango_engine.graphics.opengl.gl_window : GLWindow;
+        
+        if(backend == GraphicsBackendType.API_OPENGL)
+            return new GL" ~ object_ ~ "(" ~ params ~ ");
+    }
+    /*
+    version(mango_VKBackend) {
+        import mango_engine.graphics.vulkan.vk_window : VKWindow;
+        if(backend == GraphicsBackendType.API_VULKAN)
+            return new VK" ~ object_ ~ "(" ~ params ~ ");
+    }
+    */
+    throw new Exception(\"No backends avaliable, was it compiled in?\");
+    ";
+}
+
 /++
     Base class for a video backend implementation.
     This class handles loading system libraries required

@@ -34,7 +34,7 @@ module mango_engine.graphics.opengl.gl_backend;
 import mango_engine.mango;
 import mango_engine.graphics.backend;
 
-version(mango_GLBackend) import derelict.opengl3.gl3;
+import derelict.opengl3.gl3;
 import derelict.glfw3.glfw3;
 import derelict.freeimage.freeimage;
 import derelict.util.exception;
@@ -48,7 +48,9 @@ immutable uint MANGO_GL_VERSION_MINOR = 3;
 /// The Whole OpenGL version used by mango-engine.
 immutable GLVersion MANGO_GL_VERSION = GLVersion.GL33;
 
-package void checkSupport() @safe { // Check if we were compiled with OpenGL support.
+private alias checkSupport = gl_check;
+
+void gl_check() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
         throw new Exception("Mango-Engine was not compiled with OpenGL backend support!");
     }
@@ -65,7 +67,7 @@ ShouldThrow derelictShouldThrow(string symbolName) {
     // For now we will ignore missing symbols, TODO: FIX!
     debug {
         import std.stdio;
-        writeln("Derelict: MISSING SYMBOL! " ~ symbolName);
+        writeln("Derelict MISSING SYMBOL! " ~ symbolName);
     }
     return ShouldThrow.No;
 }

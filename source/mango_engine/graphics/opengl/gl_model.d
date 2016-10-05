@@ -32,6 +32,7 @@
 module mango_engine.graphics.opengl.gl_model;
 
 import mango_engine.graphics.model;
+import mango_engine.graphics.opengl.gl_backend;
 import mango_engine.graphics.opengl.gl_types;
 
 import derelict.opengl3.gl3;
@@ -70,6 +71,9 @@ class GLModel : Model {
 
     this(Vertex[] vertices, uint[] indices /*, Texture texture, ShaderProgram shader*/) {
         super(vertices, indices);
+        
+        gl_check();
+        
         this._drawCount = indices.length;
     }
 
