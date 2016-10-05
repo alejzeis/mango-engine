@@ -32,6 +32,7 @@
 module mango_engine.graphics.window;
 
 import mango_engine.mango;
+import mango_engine.graphics.backend;
 
 /// Represents different screen sync types
 enum SyncType {
@@ -92,20 +93,9 @@ abstract class Window {
         Throws: Exception if no backends are avaliable.
     +/
     static Window windowFactory(in string title, in uint width, in uint height, SyncType syncType, GraphicsBackendType backend) @safe {
-        version(mango_GLBackend) {
-            import mango_engine.graphics.opengl.gl_window : GLWindow;
-            
-            if(backend == GraphicsBackendType.API_OPENGL)
-                return new GLWindow(title, width, height, syncType);
-        }
-        /*
-        version(mango_VKBackend) {
-            import mango_engine.graphics.vulkan.vk_window : VKWindow;
-            if(backend == GraphicsBackendType.API_VULKAN)
-                return new VKWindow(title, width, height);
-        }
-        */
-        throw new Exception("No backends avaliable, was it compiled in?");
+        import mango_engine.graphics.opengl.gl_window;
+        
+        mixin(GenFactory!("Window", "title, width, height, syncType"));
     }
 
     final void resize(in uint width, in uint height) @trusted {
