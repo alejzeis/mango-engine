@@ -96,4 +96,17 @@ class GLModel : Model {
 
         vao.unbind();
     }
+
+    /// Cleanup resources used by the Model.
+    void cleanup() @trusted {
+        vao.bind();
+        foreach(vbo; vboList.values) {
+            vbo.cleanup();
+        }
+        vao.unbind();
+        vao.cleanup();
+
+        //texture.cleanup();
+        //shader.cleanup();
+    }
 }

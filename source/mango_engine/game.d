@@ -15,10 +15,29 @@
 */
 module mango_engine.game;
 
+import mango_engine.graphics.model;
+import mango_engine.graphics.renderer;
+import mango_engine.graphics.scene;
+import mango_engine.graphics.window;
+
 /++
     The main core of any Game application.
     Handles all sub- (Manager) classes.
 +/
 class GameManager {
-    
+    private shared Window _window;
+    private shared Scene _currentScene;
+    private shared Renderer _renderer;
+
+    // Scenes that are currently loaded in memory, but are not being rendered
+    private shared Scene[] loadedScenes; 
+
+    alias scene = currentScene;
+
+    /// The Window the Game is rendering to.
+    @property Window window() @safe nothrow { return _window; }
+    /// The Scene that is currently being displayed.
+    @property Scene currentScene() @safe nothrow { return _currentScene; }
+    /// The Renderer that renders the current Scene
+    @property Renderer renderer() @safe nothrow { return _renderer; }
 }
