@@ -31,6 +31,36 @@
 */
 module mango_engine.graphics.backend;
 
+/++
+    Factory generation mixin for base classes.
+    This generates the interface code to construct
+    the backend varient of the class depending on
+    which backend is selected, and what backends
+    were compiled in.
++/
+template GenFactory(string object_) {
+    const char[] GenFactory = "
+    version(mango_GLBackend) {
+        if(backend == GraphicsBackendType.API_OPENGL)
+            return new GL" ~ object_ ~ "();
+    }
+    /*
+    version(mango_VKBackend) {
+        if(backend == GraphicsBackendType.API_VULKAN)
+            return new VK" ~ object_ ~ "();
+    }
+    */
+    throw new Exception(\"No backends avaliable, was it compiled in?\");
+    ";
+}
+
+/++
+    Factory generation mixin for base classes.
+    This generates the interface code to construct
+    the backend varient of the class depending on
+    which backend is selected, and what backends
+    were compiled in.
++/
 template GenFactory(string object_, string params) {
     const char[] GenFactory = "
     version(mango_GLBackend) {

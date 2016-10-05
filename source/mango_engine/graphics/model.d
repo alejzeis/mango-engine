@@ -31,6 +31,11 @@
 */
 module mango_engine.graphics.model;
 
+import mango_engine.mango;
+import mango_engine.graphics.backend;
+import mango_engine.graphics.texture;
+import mango_engine.graphics.shader;
+
 import gl3n.linalg;
 
 /// Struct that represents a Vertex with a vec3 (position)
@@ -47,8 +52,20 @@ class Model {
     protected Vertex[] vertices;
     protected uint[] indices;
 
-    this(Vertex[] vertices, uint[] indices) {
+    protected Texture _texture;
+    protected ShaderProgram _shader;
+
+    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) {
         this.vertices = vertices;
         this.indices = indices;
+
+        this._texture = texture;
+        this._shader = shader;
+    }
+
+    static Model modelFactory(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) {
+        import mango_engine.graphics.opengl.gl_model : GLModel;
+
+        mixin(GenFactory!("Model", "vertices, indices, texture, shader"));
     }
 }

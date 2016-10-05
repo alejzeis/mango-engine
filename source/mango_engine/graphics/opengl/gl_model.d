@@ -32,6 +32,8 @@
 module mango_engine.graphics.opengl.gl_model;
 
 import mango_engine.graphics.model;
+import mango_engine.graphics.texture;
+import mango_engine.graphics.shader;
 import mango_engine.graphics.opengl.gl_backend;
 import mango_engine.graphics.opengl.gl_types;
 
@@ -69,8 +71,8 @@ class GLModel : Model {
     +/
     @property protected void drawCount(size_t drawCount) @safe nothrow { _drawCount = drawCount; }
 
-    this(Vertex[] vertices, uint[] indices /*, Texture texture, ShaderProgram shader*/) {
-        super(vertices, indices);
+    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) {
+        super(vertices, indices, texture, shader);
         
         gl_check();
         
