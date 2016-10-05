@@ -36,6 +36,8 @@ import mango_engine.graphics.opengl.gl_types;
 
 import derelict.opengl3.gl3;
 
+import gl3n.linalg;
+
 class GLModel : Model {
     /// Enum containing array positions for Mesh VBOs.
     static enum VBOIndexes {
@@ -75,13 +77,13 @@ class GLModel : Model {
         _vao = VAO.generateNew();
         vao.bind();
 
-        auto indicesVBO = new VBO(GL_ELEMENT_ARRAY_BUFFER);
+        auto indicesVBO = VBO(GL_ELEMENT_ARRAY_BUFFER);
         indicesVBO.bind();
         indicesVBO.setData(indices);
         //indicesVBO.setDataRaw(indices.ptr, cast(GLsizei) (indices.length * uint.sizeof));
 
         //------------------- Vertices
-        auto verticesVBO = new VBO(GL_ARRAY_BUFFER);
+        auto verticesVBO = VBO(GL_ARRAY_BUFFER);
         verticesVBO.bind();
         verticesVBO.setDataRaw(
             cast(void*) positionVerticesToFloats(vertices),
@@ -96,8 +98,8 @@ class GLModel : Model {
         vboList[VBOIndexes.VBO_INDICES] = indicesVBO;
 
         // Check if using Textured vertices.
-        if(cast(TexturedVertex[]) vertices) {
-            auto textureVBO = new VBO(GL_ARRAY_BUFFER);
+        if(cast(GLTexturedVertex[]) vertices) {
+            auto textureVBO = VBO(GL_ARRAY_BUFFER);
             textureVBO.bind();
             textureVBO.setDataRaw(
                 cast(void*) textureVerticesToFloats(vertices),

@@ -44,8 +44,8 @@ class Vertex {
 }
 
 class Model {
-    private Vertex[] vertices;
-    private uint[] indices;
+    protected Vertex[] vertices;
+    protected uint[] indices;
 
     this(Vertex[] vertices, uint[] indices) {
         this.vertices = vertices;
