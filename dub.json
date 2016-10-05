@@ -5,7 +5,7 @@
 	],
 	"description": "A game engine written in D",
 	"copyright": "Copyright © 2016, Mango-Engine Team",
-	"license": "Apache-2.0",
+	"license": "BSD 3-clause",
 	"configurations": [
 		{
 			"name": "normal",
