@@ -33,7 +33,7 @@ class GLWindow : Window {
         gl_check();
 
         createWindow();
-    }
+    }Untitled Folder
 
     private void createWindow() @trusted {
         // Set OpenGL Information
