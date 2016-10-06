@@ -1,5 +1,10 @@
 module mango_engine.util;
 
+/// Dummy class used for locks.
+class SyncLock {
+
+}
+
 /++
     Reads a whole file into a string.
 

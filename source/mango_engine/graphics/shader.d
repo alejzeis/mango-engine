@@ -1,6 +1,7 @@
 module mango_engine.graphics.shader;
 
 import mango_engine.mango;
+import mango_engine.util;
 import mango_engine.exception;
 import mango_engine.graphics.backend;
 
@@ -14,8 +15,9 @@ import std.exception : enforce;
     program. Each shader is of a different type,
     such as a Vertex Shader and Fragment Shader.
 +/
-synchronized abstract class ShaderProgram {
+abstract class ShaderProgram {
     private shared Shader[ShaderType] shaders;
+    private SyncLock lock = new SyncLock();
 
     static ShaderProgram shaderProgramFactory(GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_shader : GLShaderProgram;
@@ -24,18 +26,30 @@ synchronized abstract class ShaderProgram {
     }
 
     void addShader(shared Shader shader) @trusted {
-        enforce(!(shader.type in shaders), new InvalidArgumentException("Attempted to add multiple shaders of same type."));
-
-        shader.onShaderAdd();
-        shaders[shader.type] = shader;
+        synchronized(lock) {
+            enforce(!(shader.type in shaders), new InvalidArgumentException("Attempted to add multiple shaders of same type."));
+    
+            shader.onShaderAdd();
+            addShader_(shader);
+            shaders[shader.type] = shader;
+        }
     }
 
     void removeShader(in ShaderType shaderType) @trusted {
-        enforce(shaderType in shaders, new InvalidArgumentException("Attempted to remove Shader that was not added."));
-
-        shaders[shaderType].onShaderRemove();
-        shaders.remove(shaderType);
+        synchronized(lock) {
+            enforce(shaderType in shaders, new InvalidArgumentException("Attempted to remove Shader that was not added."));
+    
+            removeShader_(shaders[shaderType]);
+            shaders[shaderType].onShaderRemove();
+            shaders.remove(shaderType);
+        }
     }
+    
+    /// This is called after all the shaders have been added.
+    abstract void prepareProgram() @system;
+    
+    abstract void addShader_(shared Shader shader) @system;
+    abstract void removeShader_(shared Shader shader) @system;
 }
 
 /// Represents a type of Shader.
