@@ -51,9 +51,9 @@ class GameManager {
     alias scene = currentScene;
 
     /// The Window the Game is rendering to.
-    @property Window window() @trusted nothrow { return cast(Window) _window; }
+    @property shared Window window() @trusted nothrow { return cast(Window) _window; }
     /// The Scene that is currently being displayed.
-    @property Scene currentScene() @trusted nothrow { return cast(Scene) _currentScene; }
+    @property shared Scene currentScene() @trusted nothrow { return cast(Scene) _currentScene; }
     /// The Renderer that renders the current Scene
-    @property Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
+    @property shared Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
 }

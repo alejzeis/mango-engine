@@ -36,8 +36,8 @@ import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
 
 /// Represents a Scene with Models
-class Scene {
-    package shared Model[] models;
-    package shared Texture[string] textures;
-    package shared ShaderProgram[string] shaders;
+shared class Scene {
+    package Model[] models;
+    package Texture[string] textures;
+    package ShaderProgram[string] shaders;
 }

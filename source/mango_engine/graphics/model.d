@@ -53,14 +53,14 @@ class Vertex {
 abstract class Model {
     private SyncLock lock = new SyncLock();
 
-    protected Vertex[] vertices;
+    protected shared Vertex[] vertices;
     protected uint[] indices;
 
     protected shared Texture _texture;
     protected ShaderProgram _shader;
     
-    @property Texture texture() @trusted nothrow { return cast(Texture) _texture; }
-    @property void texture(shared Texture texture) @safe {
+    @property shared Texture texture() @trusted nothrow { return cast(Texture) _texture; }
+    @property shared void texture(shared Texture texture) @safe {
         synchronized(lock) {
             this._texture = texture;
         }
@@ -69,7 +69,7 @@ abstract class Model {
     @property ShaderProgram shader() @safe nothrow { return _shader; }
 
     protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
-        this.vertices = vertices;
+        this.vertices = cast(shared) vertices; //TODO: stop these hacks
         this.indices = indices;
 
         this._texture = cast(shared) texture; //TODO: !
@@ -87,7 +87,7 @@ abstract class Model {
             render_(renderer);
         }
     }
-    abstract void cleanup() @system;
+    abstract shared void cleanup() @system;
     
     abstract protected shared void render_(Renderer renderer) @system;
 }

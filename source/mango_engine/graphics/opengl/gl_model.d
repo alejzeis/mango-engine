@@ -52,18 +52,18 @@ class GLModel : Model {
 
     protected size_t _drawCount;
 
-    protected VBO[uint] vboList;
-    private VAO _vao;
+    protected shared VBO[uint] vboList;
+    private shared VAO _vao;
 
     /// The VAO belonging to the Mesh.
-    @property VAO vao() @safe nothrow { return _vao; }
+    @property shared VAO vao() @safe nothrow { return _vao; }
 
     /++
         The amount of points (vertices) that will be
         rendered. This is equal to the amount of
         indices.
     +/
-    @property size_t drawCount() @safe nothrow { return _drawCount; }
+    @property shared size_t drawCount() @safe nothrow { return _drawCount; }
 
     /++
         The amount of points (vertices) that will be
@@ -82,7 +82,7 @@ class GLModel : Model {
 
     private void setup() @system {
         _vao = VAO.generateNew();
-        vao.bind();
+        (cast(VAO) _vao).bind();
 
         auto indicesVBO = VBO(GL_ELEMENT_ARRAY_BUFFER);
         indicesVBO.bind();
@@ -93,7 +93,7 @@ class GLModel : Model {
         auto verticesVBO = VBO(GL_ARRAY_BUFFER);
         verticesVBO.bind();
         verticesVBO.setDataRaw(
-            cast(void*) positionVerticesToFloats(vertices),
+            cast(void*) positionVerticesToFloats(cast(Vertex[]) vertices),
             cast(GLsizei) (vertices.length * vec3.sizeof) // Single vertex is a vec3
         );
 
@@ -109,7 +109,7 @@ class GLModel : Model {
             auto textureVBO = VBO(GL_ARRAY_BUFFER);
             textureVBO.bind();
             textureVBO.setDataRaw(
-                cast(void*) textureVerticesToFloats(vertices),
+                cast(void*) textureVerticesToFloats(cast(Vertex[]) vertices),
                 cast(GLsizei) (vertices.length * vec2.sizeof)
             );
 
@@ -119,20 +119,27 @@ class GLModel : Model {
             vboList[VBOIndexes.VBO_TEXTURES] = textureVBO;
         }
 
-        vao.unbind();
+        (cast(VAO) _vao).unbind();
     }
 
     /// Cleanup resources used by the Model.
-    override void cleanup() @trusted {
+    override shared void cleanup() @trusted {
         vao.bind();
         foreach(vbo; vboList.values) {
-            vbo.cleanup();
+            (cast(VBO) vbo).cleanup();
         }
         vao.unbind();
         vao.cleanup();
     }
     
     override protected shared void render_(Renderer renderer) @system {
-        // TODO:
+        vao.bind();
+
+        glDrawElements(GL_TRIANGLES, cast(GLsizei) drawCount,
+            GL_UNSIGNED_INT,
+            cast(void*) 0
+        );
+
+        vao.unbind();
     }
 }
