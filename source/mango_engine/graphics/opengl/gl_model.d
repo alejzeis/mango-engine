@@ -123,19 +123,16 @@ class GLModel : Model {
     }
 
     /// Cleanup resources used by the Model.
-    void cleanup() @trusted {
+    override void cleanup() @trusted {
         vao.bind();
         foreach(vbo; vboList.values) {
             vbo.cleanup();
         }
         vao.unbind();
         vao.cleanup();
-
-        //texture.cleanup();
-        //shader.cleanup();
     }
     
-    override void render(Renderer renderer) @system {
+    override protected shared void render_(Renderer renderer) @system {
         // TODO:
     }
 }

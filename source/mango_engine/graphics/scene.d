@@ -32,8 +32,12 @@
 module mango_engine.graphics.scene;
 
 import mango_engine.graphics.model;
+import mango_engine.graphics.texture;
+import mango_engine.graphics.shader;
 
 /// Represents a Scene with Models
 class Scene {
-    private shared Model[] models;
+    package shared Model[] models;
+    package shared Texture[string] textures;
+    package shared ShaderProgram[string] shaders;
 }

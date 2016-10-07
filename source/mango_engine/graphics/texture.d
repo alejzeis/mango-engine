@@ -26,4 +26,6 @@ class Texture {
 
         mixin(GenFactory!("Texture", "filename, useAlpha"));
     }
+
+    abstract void cleanup() @system;
 }

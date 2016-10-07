@@ -32,6 +32,7 @@
 module mango_engine.graphics.model;
 
 import mango_engine.mango;
+import mango_engine.util;
 import mango_engine.graphics.backend;
 import mango_engine.graphics.renderer;
 import mango_engine.graphics.texture;
@@ -50,21 +51,28 @@ class Vertex {
 }
 
 abstract class Model {
+    private SyncLock lock = new SyncLock();
+
     protected Vertex[] vertices;
     protected uint[] indices;
 
-    protected Texture _texture;
+    protected shared Texture _texture;
     protected ShaderProgram _shader;
     
-    @property Texture texture() @safe nothrow { return _texture; }
+    @property Texture texture() @trusted nothrow { return cast(Texture) _texture; }
+    @property void texture(shared Texture texture) @safe {
+        synchronized(lock) {
+            this._texture = texture;
+        }
+    }
     
     @property ShaderProgram shader() @safe nothrow { return _shader; }
 
-    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @safe nothrow {
+    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
         this.vertices = vertices;
         this.indices = indices;
 
-        this._texture = texture;
+        this._texture = cast(shared) texture; //TODO: !
         this._shader = shader;
     }
 
@@ -73,6 +81,13 @@ abstract class Model {
 
         mixin(GenFactory!("Model", "vertices, indices, texture, shader"));
     }
+
+    shared void render(Renderer renderer) @system {
+        synchronized(lock) {
+            render_(renderer);
+        }
+    }
+    abstract void cleanup() @system;
     
-    abstract void render(Renderer renderer) @system;
+    abstract protected shared void render_(Renderer renderer) @system;
 }
