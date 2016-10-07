@@ -31,6 +31,7 @@
 */
 module mango_engine.graphics.opengl.gl_model;
 
+import mango_engine.graphics.renderer;
 import mango_engine.graphics.model;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
@@ -71,7 +72,7 @@ class GLModel : Model {
     +/
     @property protected void drawCount(size_t drawCount) @safe nothrow { _drawCount = drawCount; }
 
-    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) {
+    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @safe {
         super(vertices, indices, texture, shader);
         
         gl_check();
@@ -132,5 +133,9 @@ class GLModel : Model {
 
         //texture.cleanup();
         //shader.cleanup();
+    }
+    
+    override void render(Renderer renderer) @system {
+        // TODO:
     }
 }

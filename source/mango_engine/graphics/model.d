@@ -33,6 +33,7 @@ module mango_engine.graphics.model;
 
 import mango_engine.mango;
 import mango_engine.graphics.backend;
+import mango_engine.graphics.renderer;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
 
@@ -48,14 +49,18 @@ class Vertex {
     }
 }
 
-class Model {
+abstract class Model {
     protected Vertex[] vertices;
     protected uint[] indices;
 
     protected Texture _texture;
     protected ShaderProgram _shader;
+    
+    @property Texture texture() @safe nothrow { return _texture; }
+    
+    @property ShaderProgram shader() @safe nothrow { return _shader; }
 
-    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) {
+    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @safe nothrow {
         this.vertices = vertices;
         this.indices = indices;
 
@@ -63,9 +68,11 @@ class Model {
         this._shader = shader;
     }
 
-    static Model modelFactory(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) {
+    static Model modelFactory(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_model : GLModel;
 
         mixin(GenFactory!("Model", "vertices, indices, texture, shader"));
     }
+    
+    abstract void render(Renderer renderer) @system;
 }

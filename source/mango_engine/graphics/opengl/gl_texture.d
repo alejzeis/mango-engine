@@ -30,7 +30,13 @@ class GLTexture : Texture {
 
         format = FreeImage_GetFileType(toCString(filename), 0);
         if(format == FIF_UNKNOWN) {
-            
+            throw new Exception("Invalid format!");
         }
+        if(!FreeImage_FIFSupportsReading(format)) {
+            throw new Exception("FreeImage does not support reading file \"" ~ filename ~ "\"");
+        }
+        
+        bitmap = FreeImage_Load(format, toCString(filename));
+        return bitmap;
     }
 }
