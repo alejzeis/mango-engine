@@ -72,8 +72,8 @@ class GLWindow : Window {
     }
     
     override {
-        void updateBuffers() @system {
-            glfwSwapBuffers(window);
+        shared void updateBuffers() @system {
+            glfwSwapBuffers(cast(GLFWwindow*) window);
         }
 
         protected void setSync_(in SyncType syncType) @system {

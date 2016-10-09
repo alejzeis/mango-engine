@@ -104,7 +104,7 @@ abstract class Window {
         resize_(width, height);
     }
 
-    abstract void updateBuffers() @system;
+    shared abstract void updateBuffers() @system;
     protected abstract void setSync_(in SyncType syncType) @system;
     protected abstract void setTitle_(in string title) @system;
     protected abstract void resize_(in uint width, in uint height) @system;

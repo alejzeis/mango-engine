@@ -32,7 +32,6 @@
 module mango_engine.graphics.renderer;
 
 import mango_engine.mango;
-import mango_engine.game;
 import mango_engine.graphics.backend;
 import mango_engine.graphics.model;
 import mango_engine.graphics.scene;
@@ -42,24 +41,29 @@ import mango_engine.graphics.scene;
     on the screen.
 +/
 abstract class Renderer {
-    private shared GameManager _game;
+    //private shared GameManager _game;
     private shared Scene _scene;
 
-    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+    //@property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
     /// The scene that is currently being rendered.
     @property Scene scene() @trusted nothrow { return cast(Scene) _scene; }
     /// The scene that is currently being rendered.
-    @property package void scene(shared Scene scene) @safe nothrow { _scene = scene; }
-
-    protected this(shared GameManager game) @safe nothrow {
-        this._game = game;
+    @property package void scene(shared Scene scene) @safe nothrow {
+        scene.isRendering = true;
+        _scene.isRendering = false;
+         
+        _scene = scene; 
     }
 
-    static Renderer rendererFactory(shared GameManager game, GraphicsBackendType backend) @safe {
+    /*protected this(shared GameManager game) @safe nothrow {
+        this._game = game;
+    }*/
+
+    static Renderer rendererFactory(GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_renderer : GLRenderer;
 
-        mixin(GenFactory!("Renderer", "game"));
+        mixin(GenFactory!("Renderer"));
     }
 
     /// Render the scene

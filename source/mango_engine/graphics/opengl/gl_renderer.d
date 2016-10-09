@@ -31,7 +31,6 @@
 */
 module mango_engine.graphics.opengl.gl_renderer;
 
-import mango_engine.game;
 import mango_engine.exception;
 import mango_engine.graphics.model;
 import mango_engine.graphics.renderer;
@@ -44,9 +43,7 @@ class GLRenderer : Renderer {
     // TODO: Remove renderer class?
 
     /// Use Renderer.rendererFactory()
-    this(shared GameManager game) @safe {
-        super(game);
-
+    this() @safe {
         gl_check();
 
         setup();
@@ -63,5 +60,5 @@ class GLRenderer : Renderer {
         }
 
         model_.render(this);
-    } 
+    }
 }

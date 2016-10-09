@@ -50,7 +50,7 @@ class GLModel : Model {
         VBO_TEXTURES
     }
 
-    protected size_t _drawCount;
+    protected shared size_t _drawCount;
 
     protected shared VBO[uint] vboList;
     private shared VAO _vao;
@@ -63,21 +63,23 @@ class GLModel : Model {
         rendered. This is equal to the amount of
         indices.
     +/
-    @property shared size_t drawCount() @safe nothrow { return _drawCount; }
+    @property shared shared(size_t) drawCount() @safe nothrow { return _drawCount; }
 
     /++
         The amount of points (vertices) that will be
         rendered. This is equal to the amount of
         indices.
     +/
-    @property protected void drawCount(size_t drawCount) @safe nothrow { _drawCount = drawCount; }
+    @property protected void drawCount(shared size_t drawCount) @safe nothrow { _drawCount = drawCount; }
 
-    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @safe {
+    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @trusted {
         super(vertices, indices, texture, shader);
         
         gl_check();
         
         this._drawCount = indices.length;
+
+        setup();
     }
 
     private void setup() @system {

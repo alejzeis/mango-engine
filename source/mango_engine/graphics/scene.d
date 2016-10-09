@@ -31,13 +31,61 @@
 */
 module mango_engine.graphics.scene;
 
+import mango_engine.exception;
 import mango_engine.graphics.model;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
 
+import std.exception : enforce;
+
 /// Represents a Scene with Models
-shared class Scene {
-    package Model[] models;
+synchronized shared class Scene {
+    protected immutable string _name;
+
+    @property string name() const @safe nothrow { return _name; } 
+
+    private size_t modelCounter = 0;
+
+    package Model[size_t] models;
     package Texture[string] textures;
     package ShaderProgram[string] shaders;
+
+    package bool isRendering = false;
+
+    this(in string name) @safe nothrow {
+        this._name = name;
+    }
+
+    size_t addModel(shared Model model) @trusted nothrow {
+        import core.atomic : atomicOp;
+
+        this.models[atomicOp!"+="(modelCounter, 1)] = model;
+        return modelCounter;
+    }
+
+    void addTexture(in string textureName, shared Texture texture) @safe nothrow {
+        this.textures[textureName] = texture;
+    }
+
+    void addShader(in string shaderName, shared ShaderProgram shader) @safe nothrow {
+        this.shaders[shaderName] = shader;
+    }
+
+    void removeModel(in size_t modelId) @safe {
+        enforce(modelId in this.models, new InvalidArgumentException("Invalid modelId! (not a valid key)"));
+
+        this.models.remove(modelId);
+    }
+
+    void removeTexture(in string textureName) @safe {
+        enforce(textureName in this.textures, new InvalidArgumentException("Invalid textureName (not a valid key)"));
+
+        this.textures.remove(textureName);
+    }
+
+    void removeShader(in string shaderName) @safe {
+        enforce(shaderName in this.shaders, new InvalidArgumentException("Invalid shaderName (not a valid key)"));
+
+        this.shaders.remove(shaderName);
+    }
 }
