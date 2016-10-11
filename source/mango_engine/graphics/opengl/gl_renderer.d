@@ -31,6 +31,7 @@
 */
 module mango_engine.graphics.opengl.gl_renderer;
 
+import mango_engine.game;
 import mango_engine.exception;
 import mango_engine.graphics.model;
 import mango_engine.graphics.renderer;
@@ -43,7 +44,9 @@ class GLRenderer : Renderer {
     // TODO: Remove renderer class?
 
     /// Use Renderer.rendererFactory()
-    this() @safe {
+    this(GameManager game) @safe {
+        super(game);
+
         gl_check();
 
         setup();
@@ -53,12 +56,24 @@ class GLRenderer : Renderer {
         glEnable(GL_TEXTURE_2D);
     }
 
-    override protected void renderModel(shared Model model_) @system {
-        shared GLModel model = cast(shared GLModel) model_;
-        if(model is null) {
-            throw new InvalidArgumentException("Cannot render Model not of type GLModel.");
+    override {
+        protected void prepareRender() @system {
+            super.prepareRender();
+            glClear(GL_COLOR_BUFFER_BIT);
         }
 
-        model_.render(this);
+        protected void renderModel(shared Model model_) @system {
+            shared GLModel model = cast(shared GLModel) model_;
+            if(model is null) {
+                throw new InvalidArgumentException("Cannot render Model not of type GLModel.");
+            }
+
+            model_.render(this);
+        }
+
+        protected void finishRender() @system {
+            super.finishRender();
+            (cast(shared) this.game.window).updateBuffers();
+        }
     }
 }

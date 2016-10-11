@@ -51,7 +51,7 @@ class Vertex {
 }
 
 abstract class Model {
-    private SyncLock lock = new SyncLock();
+    private SyncLock lock;
 
     protected shared Vertex[] vertices;
     protected uint[] indices;
@@ -69,6 +69,8 @@ abstract class Model {
     @property ShaderProgram shader() @safe nothrow { return _shader; }
 
     protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
+        this.lock = new SyncLock();
+
         this.vertices = cast(shared) vertices; //TODO: stop these hacks
         this.indices = indices;
 

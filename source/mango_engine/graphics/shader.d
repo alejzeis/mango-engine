@@ -48,7 +48,11 @@ import std.exception : enforce;
 +/
 abstract class ShaderProgram {
     private shared Shader[ShaderType] shaders;
-    private SyncLock lock = new SyncLock();
+    private SyncLock lock;
+
+    this() @safe nothrow {
+        lock = new SyncLock();
+    }
 
     static ShaderProgram shaderProgramFactory(GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_shader : GLShaderProgram;

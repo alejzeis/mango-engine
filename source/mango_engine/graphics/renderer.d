@@ -32,6 +32,8 @@
 module mango_engine.graphics.renderer;
 
 import mango_engine.mango;
+import mango_engine.game;
+import mango_engine.event.core;
 import mango_engine.graphics.backend;
 import mango_engine.graphics.model;
 import mango_engine.graphics.scene;
@@ -41,36 +43,58 @@ import mango_engine.graphics.scene;
     on the screen.
 +/
 abstract class Renderer {
-    //private shared GameManager _game;
+    private GameManager _game;
     private shared Scene _scene;
 
-    //@property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
     /// The scene that is currently being rendered.
     @property Scene scene() @trusted nothrow { return cast(Scene) _scene; }
     /// The scene that is currently being rendered.
-    @property package void scene(shared Scene scene) @safe nothrow {
+    void setScene(Scene scene) @trusted nothrow {
         scene.isRendering = true;
-        _scene.isRendering = false;
+        if(_scene !is null)
+            _scene.isRendering = false;
          
-        _scene = scene; 
+        _scene = cast(shared) scene; 
     }
 
-    /*protected this(shared GameManager game) @safe nothrow {
+    protected this(GameManager game) @safe {
         this._game = game;
-    }*/
 
-    static Renderer rendererFactory(GraphicsBackendType backend) @safe {
+        game.eventManager.registerEventHook(TickEvent.classinfo.name,
+            EventHook(&this.evtHook_render, false)
+        );
+    }
+
+    static Renderer rendererFactory(GameManager game, GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_renderer : GLRenderer;
 
-        mixin(GenFactory!("Renderer"));
+        mixin(GenFactory!("Renderer", "game"));
+    }
+
+    private void evtHook_render(Event e) @system {
+        debug {
+            import std.stdio;
+            writeln("Event caught!");
+        }
+        render();
     }
 
     /// Render the scene
     final void render() @trusted {
+        prepareRender();
         foreach(model; scene.models) {
-            renderModel(model);
+            renderModel(cast(shared) model); //TODO: synchronization
         }
+        finishRender();
+    }
+
+    protected void prepareRender() @system {
+
+    }
+    protected void finishRender() @system {
+
     }
 
     protected abstract void renderModel(shared Model model) @system;

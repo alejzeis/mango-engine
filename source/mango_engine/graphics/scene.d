@@ -39,7 +39,7 @@ import mango_engine.graphics.shader;
 import std.exception : enforce;
 
 /// Represents a Scene with Models
-synchronized shared class Scene {
+synchronized class Scene {
     protected immutable string _name;
 
     @property string name() const @safe nothrow { return _name; } 
