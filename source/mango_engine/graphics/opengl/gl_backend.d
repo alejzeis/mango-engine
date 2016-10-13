@@ -47,8 +47,12 @@ immutable uint MANGO_GL_VERSION_MAJOR = 3;
 immutable uint MANGO_GL_VERSION_MINOR = 3;
 /// The Whole OpenGL version used by mango-engine.
 immutable GLVersion MANGO_GL_VERSION = GLVersion.GL33;
+/// The OpenGL version used by mango-engine (string)
+immutable string MANGO_GL_VERSION_STRING = "GL 3.3";
 
 private alias checkSupport = gl_check;
+
+package shared bool failedContext = false;
 
 void gl_check() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
@@ -59,6 +63,10 @@ void gl_check() @safe { // Check if we were compiled with OpenGL support.
 extern(C) private void glfwErrorCallback(int error, const char* description) @system {
     import std.stdio : writeln;
     import blocksound.util : toDString;
+
+    if(error == 65543) {
+        failedContext = true;
+    }
 
     writeln("[MangoEngine]: GLFW ERROR! ", error, " ", toDString(description));
 }

@@ -44,6 +44,13 @@ enum SyncType {
     SYNC_ADAPTIVE
 }
 
+/// Thrown when there is an error creating the Window context.
+class WindowContextFailedException : Exception {
+    this(in string message) {
+        super(message);
+    }   
+}
+
 /++
     Represents a surface that the backend
     renders on.

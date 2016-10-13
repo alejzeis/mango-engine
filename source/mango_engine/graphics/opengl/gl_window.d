@@ -39,6 +39,8 @@ import blocksound.util : toCString, toDString;
 import derelict.glfw3;
 import derelict.opengl3.gl3 : glGetString, GL_VERSION;
 
+import std.conv;
+
 class GLWindow : Window {
     private GLFWwindow* window;
 
@@ -57,7 +59,10 @@ class GLWindow : Window {
 
         window = glfwCreateWindow(width, height, toCString(title), null, null);
         if(!window) {
-            throw new Exception("Failed to create window!");
+            if(failedContext) { // From gl_backend
+                throw new WindowContextFailedException("Context Failed! Does the host machine support OpenGL " ~ MANGO_GL_VERSION_STRING ~ "?");
+            } else 
+                throw new Exception("Failed to create window!");
         }
 
         glfwMakeContextCurrent(window); // Set our main OpenGL context
