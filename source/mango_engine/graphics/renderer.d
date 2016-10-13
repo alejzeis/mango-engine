@@ -64,7 +64,7 @@ abstract class Renderer {
 
         game.eventManager.registerEventHook(TickEvent.classinfo.name,
             EventHook(&this.evtHook_render, false)
-        );
+        ); // TODO: PROCESS RENDERING IN SEPERATE THREAD!
     }
 
     static Renderer rendererFactory(GameManager game, GraphicsBackendType backend) @safe {

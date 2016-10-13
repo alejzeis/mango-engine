@@ -33,6 +33,8 @@ module mango_engine.graphics.model;
 
 import mango_engine.mango;
 import mango_engine.util;
+import mango_engine.game;
+import mango_engine.event.graphics;
 import mango_engine.graphics.backend;
 import mango_engine.graphics.renderer;
 import mango_engine.graphics.texture;
@@ -51,13 +53,16 @@ class Vertex {
 }
 
 abstract class Model {
+    private GameManager game;
     private SyncLock lock;
 
     protected shared Vertex[] vertices;
-    protected uint[] indices;
+    protected shared uint[] _indices;
 
     protected shared Texture _texture;
-    protected ShaderProgram _shader;
+    protected shared ShaderProgram _shader;
+
+    @property uint[] indices() @trusted nothrow { return cast(uint[]) _indices; }
     
     @property shared Texture texture() @trusted nothrow { return cast(Texture) _texture; }
     @property shared void texture(shared Texture texture) @safe {
@@ -66,30 +71,32 @@ abstract class Model {
         }
     }
     
-    @property ShaderProgram shader() @safe nothrow { return _shader; }
+    @property ShaderProgram shader() @trusted  nothrow { return cast(ShaderProgram) _shader; }
 
-    protected this(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
+    protected this(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
+        this.game = game;
         this.lock = new SyncLock();
 
-        this.vertices = cast(shared) vertices; //TODO: stop these hacks
-        this.indices = indices;
+        this.vertices = cast(shared) vertices;
+        this._indices = cast(shared) indices;
 
-        this._texture = cast(shared) texture; //TODO: !
-        this._shader = shader;
+        this._texture = cast(shared) texture;
+        this._shader = cast(shared) shader;
     }
 
-    static Model modelFactory(Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) @safe {
+    static Model modelFactory(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_model : GLModel;
 
-        mixin(GenFactory!("Model", "vertices, indices, texture, shader"));
+        mixin(GenFactory!("Model", "game, vertices, indices, texture, shader"));
     }
 
-    shared void render(Renderer renderer) @system {
+    void render(Renderer renderer) @system {
+        game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
         synchronized(lock) {
             render_(renderer);
         }
     }
-    abstract shared void cleanup() @system;
+    abstract void cleanup() @system;
     
-    abstract protected shared void render_(Renderer renderer) @system;
+    abstract protected void render_(Renderer renderer) @system;
 }

@@ -100,7 +100,7 @@ abstract class Backend {
 
     /// Call any initialization code required by the Backend. May be overriden.
     shared void doInit() @system {
-
+        
     }
 
     /// Call any de-initialization code required by the Backend. May be overriden.

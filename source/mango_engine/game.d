@@ -7,6 +7,7 @@ import mango_engine.graphics.renderer;
 import mango_engine.graphics.scene;
 
 import std.exception : enforce;
+import std.datetime;
 
 class GameManager {
     private shared Window _window;
@@ -33,17 +34,30 @@ class GameManager {
     }
 
     void run() {
+        import core.thread : Thread;
+
         enforce(!running, new Exception("Game is already running!"));
 
         running = true;
 
+        size_t fps = 300; // TODO: allow configuration
+        long time = 1000 / fps;
+        StopWatch sw = StopWatch();
+
         while(running) {
-            // TODO: load balancing (sleep)?
+            sw.reset();
+            sw.start();
+
             TickEvent te = new TickEvent();
             te.testString = "this is a tick event.";
 
             eventManager.fireEvent(te);
             eventManager.update();
+
+            sw.stop();
+            if(sw.peek.msecs < time) {
+                Thread.sleep((time - sw.peek.msecs).msecs);
+            }
         }
     }
 }

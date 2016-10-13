@@ -31,6 +31,7 @@
 */
 module mango_engine.graphics.opengl.gl_model;
 
+import mango_engine.game;
 import mango_engine.graphics.renderer;
 import mango_engine.graphics.model;
 import mango_engine.graphics.texture;
@@ -56,14 +57,14 @@ class GLModel : Model {
     private shared VAO _vao;
 
     /// The VAO belonging to the Mesh.
-    @property shared VAO vao() @safe nothrow { return _vao; }
+    @property VAO vao() @trusted nothrow { return cast(VAO) _vao; }
 
     /++
         The amount of points (vertices) that will be
         rendered. This is equal to the amount of
         indices.
     +/
-    @property shared shared(size_t) drawCount() @safe nothrow { return _drawCount; }
+    @property size_t drawCount() @trusted nothrow { return cast(size_t) _drawCount; }
 
     /++
         The amount of points (vertices) that will be
@@ -72,8 +73,8 @@ class GLModel : Model {
     +/
     @property protected void drawCount(shared size_t drawCount) @safe nothrow { _drawCount = drawCount; }
 
-    this(Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @trusted {
-        super(vertices, indices, texture, shader);
+    this(GameManager game, Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @trusted {
+        super(game, vertices, indices, texture, shader);
         
         gl_check();
         
@@ -125,7 +126,7 @@ class GLModel : Model {
     }
 
     /// Cleanup resources used by the Model.
-    override shared void cleanup() @trusted {
+    override void cleanup() @trusted {
         vao.bind();
         foreach(vbo; vboList.values) {
             (cast(VBO) vbo).cleanup();
@@ -134,7 +135,7 @@ class GLModel : Model {
         vao.cleanup();
     }
     
-    override protected shared void render_(Renderer renderer) @system {
+    override protected void render_(Renderer renderer) @system {
         vao.bind();
 
         glDrawElements(GL_TRIANGLES, cast(GLsizei) drawCount,

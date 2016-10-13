@@ -68,7 +68,7 @@ class GLRenderer : Renderer {
                 throw new InvalidArgumentException("Cannot render Model not of type GLModel.");
             }
 
-            model_.render(this);
+            (cast(GLModel) model_).render(this);
         }
 
         protected void finishRender() @system {
