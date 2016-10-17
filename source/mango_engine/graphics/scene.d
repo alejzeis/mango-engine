@@ -31,6 +31,7 @@
 */
 module mango_engine.graphics.scene;
 
+import mango_engine.util;
 import mango_engine.exception;
 import mango_engine.graphics.model;
 import mango_engine.graphics.texture;
@@ -39,53 +40,71 @@ import mango_engine.graphics.shader;
 import std.exception : enforce;
 
 /// Represents a Scene with Models
-synchronized class Scene {
-    protected immutable string _name;
+class Scene {
+    immutable string name; 
 
-    @property string name() const @safe nothrow { return _name; } 
+    private shared size_t modelCounter = 0;
 
-    private size_t modelCounter = 0;
+    private shared SyncLock modelLock;
+    private shared SyncLock textureLock;
+    private shared SyncLock shaderLock;
 
-    package Model[size_t] models;
-    package Texture[string] textures;
-    package ShaderProgram[string] shaders;
+    package shared Model[size_t] models;
+    package shared Texture[string] textures;
+    package shared ShaderProgram[string] shaders;
 
     package bool isRendering = false;
 
     this(in string name) @safe nothrow {
-        this._name = name;
+        this.name = name;
+
+        modelLock = new SyncLock();
+        textureLock = new SyncLock();
+        shaderLock = new SyncLock();
     }
 
-    size_t addModel(shared Model model) @trusted nothrow {
+    size_t addModel(Model model) @trusted {
         import core.atomic : atomicOp;
 
-        this.models[atomicOp!"+="(modelCounter, 1)] = model;
-        return modelCounter;
+        synchronized(modelLock) {
+            this.models[atomicOp!"+="(modelCounter, 1)] = cast(shared) model;
+            return modelCounter;
+        }
     }
 
-    void addTexture(in string textureName, shared Texture texture) @safe nothrow {
-        this.textures[textureName] = texture;
+    void addTexture(in string textureName, Texture texture) @trusted {
+        synchronized(textureLock) {
+            this.textures[textureName] = cast(shared) texture;
+        }
     }
 
-    void addShader(in string shaderName, shared ShaderProgram shader) @safe nothrow {
-        this.shaders[shaderName] = shader;
+    void addShader(in string shaderName, ShaderProgram shader) @trusted {
+        synchronized(shaderLock) {
+            this.shaders[shaderName] = cast(shared) shader;
+        }
     }
 
     void removeModel(in size_t modelId) @safe {
-        enforce(modelId in this.models, new InvalidArgumentException("Invalid modelId! (not a valid key)"));
+        synchronized(modelLock) {
+            enforce(modelId in this.models, new InvalidArgumentException("Invalid modelId! (not a valid key)"));
 
-        this.models.remove(modelId);
+            this.models.remove(modelId);
+        }
     }
 
     void removeTexture(in string textureName) @safe {
-        enforce(textureName in this.textures, new InvalidArgumentException("Invalid textureName (not a valid key)"));
+        synchronized(textureLock) {
+            enforce(textureName in this.textures, new InvalidArgumentException("Invalid textureName (not a valid key)"));
 
-        this.textures.remove(textureName);
+            this.textures.remove(textureName);
+        }
     }
 
     void removeShader(in string shaderName) @safe {
-        enforce(shaderName in this.shaders, new InvalidArgumentException("Invalid shaderName (not a valid key)"));
+        synchronized(shaderLock) {
+            enforce(shaderName in this.shaders, new InvalidArgumentException("Invalid shaderName (not a valid key)"));
 
-        this.shaders.remove(shaderName);
+            this.shaders.remove(shaderName);
+        }
     }
 }
