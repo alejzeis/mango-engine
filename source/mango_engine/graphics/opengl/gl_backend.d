@@ -32,6 +32,7 @@
 module mango_engine.graphics.opengl.gl_backend;
 
 import mango_engine.mango;
+import mango_engine.logging;
 import mango_engine.graphics.backend;
 
 import derelict.opengl3.gl3;
@@ -54,6 +55,8 @@ private alias checkSupport = gl_check;
 
 package shared bool failedContext = false;
 
+package shared Logger glfwErrorLogger;
+
 void gl_check() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
         throw new Exception("Mango-Engine was not compiled with OpenGL backend support!");
@@ -68,16 +71,7 @@ extern(C) private void glfwErrorCallback(int error, const char* description) @sy
         failedContext = true;
     }
 
-    writeln("[MangoEngine]: GLFW ERROR! ", error, " ", toDString(description));
-}
-
-ShouldThrow derelictShouldThrow(string symbolName) {
-    // For now we will ignore missing symbols, TODO: FIX!
-    debug {
-        import std.stdio;
-        writeln("Derelict MISSING SYMBOL! " ~ symbolName);
-    }
-    return ShouldThrow.No;
+    (cast(Logger) glfwErrorLogger).logError("GLFW ERROR " ~ to!string(error) ~ ", " ~ toDString(description));
 }
 
 /++
@@ -100,13 +94,19 @@ ShouldThrow derelictShouldThrow(string symbolName) {
 +/
 class GLBackend : Backend {
 
+    this(Logger logger) @trusted {
+        super(logger);
+        // TODO: init logger based on logger class provided
+        glfwErrorLogger = cast(shared) new ConsoleLogger("GLFW Error Logger");
+    }
+
     /// Loads the core methods of OpenGL (1.1+)
     static void loadCoreMethods() @system {
         DerelictGL3.reload();
     }
 
     override {
-        shared void loadLibraries(in string[string] args = null) @system {
+        void loadLibraries(in string[string] args = null) @system {
             checkSupport();
 
             if("gl_useProvided" in args && to!bool(args["gl_useProvided"]) == true) {
@@ -117,7 +117,7 @@ class GLBackend : Backend {
             loadFI();
         }
 
-        shared void doInit() @system {
+        void doInit() @system {
             glfwSetErrorCallback(cast(GLFWerrorfun) &glfwErrorCallback);
 
             if(!glfwInit()) {
@@ -126,19 +126,29 @@ class GLBackend : Backend {
             }
         }
 
-        shared void doDestroy() @system {
+        void doDestroy() @system {
             glfwTerminate();
         }
     }
 
-    private shared void loadGL(bool useProvided) @system { // Load code for OpenGL
+    ShouldThrow derelictShouldThrow(string symbolName) {
+        // For now we will ignore missing symbols, TODO: FIX!
+        logger.logWarn("Missing symbol: " ~ symbolName ~ " !");
+        return ShouldThrow.No;
+    }
+
+    private void loadGL(bool useProvided) @system { // Load code for OpenGL
+        logger.logDebug("Loading OpenGL...");
         version(mango_GLBackend) {
             version(Windows) {
                 //------------------------------- Windows Load Code
                 try {
                     if(useProvided) {
                         DerelictGL3.load("lib\\opengl32.dll"); // Use provided DLL
-                    } else DerelictGL3.load();
+                        logger.logDebug("Loaded Provided opengl32.dll");
+                    } else {
+                        DerelictGL3.load();
+                    }
 
                 } catch(Exception e) {
                     throw new LibraryLoadException("OpenGL", e.toString());
@@ -154,7 +164,8 @@ class GLBackend : Backend {
         }
     }
 
-    private shared void loadGLFW() @system { // Load code for GLFW
+    private void loadGLFW() @system { // Load code for GLFW
+        logger.logDebug("Loadng GLFW...");
         version(Windows) {
             //------------------------------- Windows Load Code
             try {
@@ -164,7 +175,7 @@ class GLBackend : Backend {
             }
             //------------------------------- End Windows Load Code
         } else { // All other OS
-            DerelictGLFW3.missingSymbolCallback = &derelictShouldThrow;
+            DerelictGLFW3.missingSymbolCallback = &this.derelictShouldThrow;
             try {
                 DerelictGLFW3.load();
             } catch(Exception e) {
@@ -173,7 +184,8 @@ class GLBackend : Backend {
         }
     }
 
-    private shared void loadFI() @system { // Load code for FreeImage
+    private void loadFI() @system { // Load code for FreeImage
+        logger.logDebug("Loading FreeImage...");
         version(Windows) {
             //------------------------------- Windows Load Code
             try {

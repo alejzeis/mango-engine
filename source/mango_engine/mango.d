@@ -15,6 +15,8 @@
 */
 module mango_engine.mango;
 
+import mango_engine.logging;
+
 version(mango_GLBackend) {
     import mango_engine.graphics.opengl.gl_backend;
     
@@ -78,24 +80,31 @@ bool mango_hasInitialized() @safe nothrow {
     the engine for usage.
 +/
 void mango_init(GraphicsBackendType backendType) @system {
+    Logger logger = new ConsoleLogger("BackendInit");
+
     debug(mango_debug_sysInfo) {
         import std.stdio : writeln;
-        writeln("[DEBUG/MangoEngine]: Initalizing engine...");
+        logger.logDebug("Initializing engine...");
     }
 
     final switch(backendType) {
         case GraphicsBackendType.API_OPENGL:
             version(mango_GLBackend) {
-                glBackend = new GLBackend();
-                glBackend.loadLibraries(); // TODO: ARGS
+                logger.logDebug("Initializing OpenGL backend.");
+                GLBackend _glBackend = new GLBackend(logger);
+                _glBackend.loadLibraries(); // TODO: ARGS
+                logger.logDebug("Loaded libraries.");
 
-                glBackend.doInit();
+                _glBackend.doInit();
+                glBackend = cast(shared) _glBackend;
             } else throw new Exception("Mango-Engine was not compiled with OpenGL support!");
             break;
         case GraphicsBackendType.API_VULKAN:
             version(mango_VKBackend) {
+                logger.logDebug("Initializing Vulkan backend.");
                 vkBackend = new VKBackend();
                 vkBackend.loadLibraries();
+                logger.logDebug("Loaded libraries.");
 
                 vkBackend.doInit();
             } else throw new Exception("Mango-Engine was not compiled with Vulkan support!");
@@ -109,7 +118,7 @@ void mango_init(GraphicsBackendType backendType) @system {
 void mango_destroy() @system {
     version(mango_GLBackend) {
         if(glBackend !is null)
-            glBackend.doDestroy();
+            (cast(GLBackend) glBackend).doDestroy();
     }
 
     version(mango_VKBackend) {

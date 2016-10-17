@@ -16,7 +16,8 @@
 				"derelict-gl3" : "~>1.0.18",
 				"derelict-fi": "~>2.0.3",
 			    "gl3n" : "~>1.3.1",
-			    "blocksound": "~>1.1.1-alpha1"
+			    "blocksound": "~>1.1.1-alpha1",
+				"consoled": "~>1.0.4"
 			},
 			"versions": [
 				"mango_GLBackend"
@@ -34,11 +35,12 @@
 				"erupted": "~>1.4.3",
 
 			    "gl3n" : "~>1.3.1",
-			    "blocksound": "~>1.1.1-alpha1"
+			    "blocksound": "~>1.1.1-alpha1",
+				"consoled": "~>1.0.4"
 			},
 			"versions": [
 				"mango_GLBackend",
-				"mango_VKBackend"
+				"mango_VKBackend",
 			]
 		}
 	]

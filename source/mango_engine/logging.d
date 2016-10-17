@@ -55,27 +55,36 @@ abstract class Logger {
 }
 
 class ConsoleLogger : Logger {
-    import std.stdio;
+    import std.stdio : write, writeln;
+    import consoled;
 
     this(in string name) @safe nothrow {
         super(name);
     }
 
     override {
-        void logDebug_(in string message) @safe {
-            
+        void logDebug_(in string message) @trusted {
+            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+
+            resetColors();
         }
 
-        void logInfo(in string message) @safe {
+        void logInfo(in string message) @trusted {
+            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
+            resetColors();
         }
 
-        void logWarn(in string message) @safe {
+        void logWarn(in string message) @trusted {
+            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
+            resetColors();
         }
 
-        void logError(in string message) @safe {
+        void logError(in string message) @trusted {
+            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
+            resetColors();
         }
     }
 }

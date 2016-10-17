@@ -31,6 +31,8 @@
 */
 module mango_engine.graphics.backend;
 
+import mango_engine.logging;
+
 /++
     Factory generation mixin for base classes.
     This generates the interface code to construct
@@ -86,6 +88,13 @@ template GenFactory(string object_, string params) {
     All backends must extend this class.
 +/
 abstract class Backend {
+    protected shared Logger _logger;
+
+    @property Logger logger() @trusted nothrow { return cast(Logger) _logger; }
+
+    this(Logger logger) @trusted nothrow {
+        this._logger = cast(shared) logger;
+    }
 
     /++
         Load system libraries required by the backend.
@@ -96,15 +105,15 @@ abstract class Backend {
                     backend. Consult the backend documentation
                     for information on keys and values.
     +/
-    abstract shared void loadLibraries(in string[string] args = null) @system;
+    abstract void loadLibraries(in string[string] args = null) @system;
 
     /// Call any initialization code required by the Backend. May be overriden.
-    shared void doInit() @system {
+    void doInit() @system {
         
     }
 
     /// Call any de-initialization code required by the Backend. May be overriden.
-    shared void doDestroy() @system {
+    void doDestroy() @system {
 
     }
 }

@@ -32,6 +32,7 @@
 module mango_engine.graphics.vulkan.vk_backend;
 
 import mango_engine.mango;
+import mango_engine.logging;
 import mango_engine.graphics.backend;
 
 version(mango_VKBackend) import erupted;
@@ -48,15 +49,20 @@ package void checkSupport() @safe { // Check if we were compiled with Vulkan sup
 }
 
 class VKBackend : Backend {
+
+    this(Logger logger) @safe {
+        super(logger);
+    }
+
     override {
-        shared void loadLibraries(in string[string] args = null) @system {
+        void loadLibraries(in string[string] args = null) @system {
             checkSupport();
             
             loadGLFW();
             loadFI();
         }
 
-        shared void doInit() @system {
+        void doInit() @system {
             if(!glfwInit()) {
                 // GLFW failed to initalize
                 throw new LibraryLoadException("GLFW", "glfwInit() Failed!");
@@ -78,7 +84,7 @@ class VKBackend : Backend {
     }
     */
     
-    private shared void loadGLFW() @system { // Load code for GLFW
+    private void loadGLFW() @system { // Load code for GLFW
         version(Windows) {
             //------------------------------- Windows Load Code
             try {
@@ -98,7 +104,7 @@ class VKBackend : Backend {
         }
     }
 
-    private shared void loadFI() @system { // Load code for FreeImage
+    private void loadFI() @system { // Load code for FreeImage
         version(Windows) {
             //------------------------------- Windows Load Code
             try {
