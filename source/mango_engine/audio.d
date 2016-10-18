@@ -31,6 +31,19 @@
 */
 module mango_engine.audio;
 
+import mango_engine.game;
+
+import blocksound.core;
+import blocksound.audio;
+
 class AudioManager {
-    
+    private shared GameManager _game;
+
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    this(GameManager game) @trusted {
+        this._game = cast(shared) game;
+
+        blocksound_Init();
+    }
 }
