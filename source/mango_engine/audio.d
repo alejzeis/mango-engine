@@ -32,18 +32,43 @@
 module mango_engine.audio;
 
 import mango_engine.game;
+import mango_engine.event.core;
 
 import blocksound.core;
 import blocksound.audio;
 
+import gl3n.linalg;
+
+// Name conflict with mango_engine.audio.AudioManager
+package alias blocksound_AudioManager = blocksound.audio.AudioManager;
+
 class AudioManager {
     private shared GameManager _game;
+    private shared blocksound_AudioManager _audioManager;
 
     @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    @property blocksound_AudioManager audioManager() @trusted nothrow { return cast(blocksound_AudioManager) _audioManager; }
 
     this(GameManager game) @trusted {
         this._game = cast(shared) game;
 
+        game.eventManager.registerEventHook(EngineCleanupEvent.classinfo.name,
+            EventHook((Event e) {
+                audioManager.cleanup();
+            }, false) // We need to cleanup the context in the same thread it was created
+        );
+
         blocksound_Init();
+
+        _audioManager = cast(shared) new blocksound_AudioManager();
+    }
+
+    void setListenerLocation(vec3 location) @safe {
+        audioManager.listenerLocation(Vec3(location.x, location.y, location.z));
+    }
+
+    vec3 getListenerLocation() @safe {
+        return vec3(audioManager.listenerLocation.x, audioManager.listenerLocation.y, audioManager.listenerLocation.z);
     }
 }

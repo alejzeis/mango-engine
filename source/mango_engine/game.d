@@ -34,6 +34,7 @@ module mango_engine.game;
 import mango_engine.mango;
 import mango_engine.exception;
 import mango_engine.util;
+import mango_engine.audio;
 import mango_engine.logging;
 import mango_engine.event.core;
 import mango_engine.graphics.window;
@@ -54,6 +55,7 @@ class GameManager {
     private shared Scene[string] loadedScenes;
 
     private shared EventManager _eventManager;
+    private shared AudioManager _audioManager;
     private shared Logger _logger;
 
     @property Window window() @trusted nothrow { return cast(Window) _window; }
@@ -62,6 +64,7 @@ class GameManager {
 
 
     @property EventManager eventManager() @trusted nothrow { return cast(EventManager) _eventManager; }
+    @property AudioManager audioManager() @trusted nothrow { return cast(AudioManager) _audioManager; }
     @property Logger logger() @trusted nothrow { return cast(Logger) _logger; }
 
     private shared bool running = false;
@@ -71,7 +74,9 @@ class GameManager {
         initLogger();
 
         this._eventManager = cast(shared) new EventManager(this);
-        this._renderer = cast(shared) Renderer.rendererFactory(this, backend);
+        this._audioManager = cast(shared) new AudioManager(this);
+        if(window !is null) 
+            this._renderer = cast(shared) Renderer.rendererFactory(this, backend);
 
         loadedScenesLock = new SyncLock();
         sceneLock = new SyncLock();
@@ -93,7 +98,7 @@ class GameManager {
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
 
-        logger.logDebug("Starting...");
+        logger.logDebug("Starting main loop...");
 
         while(running) {
             sw.reset();
@@ -110,6 +115,11 @@ class GameManager {
                 Thread.sleep((time - sw.peek.msecs).msecs);
             }
         }
+
+        logger.logDebug("Cleaning up...");
+
+        eventManager.fireEvent(new EngineCleanupEvent());
+        eventManager.update();
     }
 
     void loadScene(Scene scene) @trusted {

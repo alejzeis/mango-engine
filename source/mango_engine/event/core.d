@@ -45,6 +45,11 @@ class TickEvent : Event {
     string testString;
 }
 
+/// Event that is fired when the engine begins to clean up.
+class EngineCleanupEvent : Event {
+
+}
+
 alias HookDelegate = void delegate(Event e) @system;
 
 struct EventHook {
