@@ -65,10 +65,18 @@ class AudioManager {
     }
 
     void setListenerLocation(vec3 location) @safe {
-        audioManager.listenerLocation(Vec3(location.x, location.y, location.z));
+        audioManager.listenerLocation = Vec3(location.x, location.y, location.z);
+    }
+
+    void setGain(float gain) @safe {
+        audioManager.gain = gain;
     }
 
     vec3 getListenerLocation() @safe {
         return vec3(audioManager.listenerLocation.x, audioManager.listenerLocation.y, audioManager.listenerLocation.z);
+    }
+
+    float getGain() @safe {
+        return audioManager.gain;
     }
 }

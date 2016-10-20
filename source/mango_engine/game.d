@@ -113,6 +113,10 @@ class GameManager {
             sw.stop();
             if(sw.peek.msecs < time) {
                 Thread.sleep((time - sw.peek.msecs).msecs);
+            } else {
+                version(mango_warnOvertime) {
+                    logger.logWarn("Can't keep up! (" ~ to!string(sw.peek.msecs) ~ " > " ~ to!string(time) ~ ")");
+                }
             }
         }
 

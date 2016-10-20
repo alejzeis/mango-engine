@@ -35,6 +35,8 @@ import mango_engine.game;
 import mango_engine.exception;
 import mango_engine.util;
 
+import std.conv;
+
 /// Represents a callable event with properties.
 abstract class Event {
 
@@ -71,8 +73,10 @@ class EventManager {
     private shared Event[size_t] evtQueue;
 
     this(GameManager game) @safe {
+        import core.cpuid;
         this.game = game;
-        this.pool = new ThreadPool(4); //TODO: Modify worker number on CPU cores/configManager
+        game.logger.logDebug("Thread Pool created with " ~ to!string(coresPerCPU()) ~ " threads.");
+        this.pool = new ThreadPool(coresPerCPU()); 
 
         this.evtQueueLock = new shared SyncLock();
         this.hookLock = new shared SyncLock();
