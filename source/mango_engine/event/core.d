@@ -54,9 +54,9 @@ alias HookDelegate = void delegate(Event e) @system;
 
 struct EventHook {
     /// The function delegate to be ran.
-    HookDelegate hook;
+    immutable HookDelegate hook;
     /// If the delegate can be ran in a separate worker thread.
-    bool runAsync = true;
+    immutable bool runAsync = true;
 }
 
 class EventManager {
@@ -124,10 +124,6 @@ class EventManager {
 
             foreach(size_t key; toRemove) { // Remove all the processed events
                 this.evtQueue.remove(key);
-                debug {
-                    import std.stdio;
-                    writeln("Removed: ", key);
-                }
             }
         }
     }

@@ -32,6 +32,7 @@
 module mango_engine.util;
 
 import std.concurrency;
+import core.atomic;
 
 /// Dummy class used for locks.
 class SyncLock {
@@ -43,40 +44,60 @@ class ThreadPool {
     immutable size_t workerNumber;
 
     private struct Worker {
-        Tid tid;
-        bool busy = false;
+        private shared Tid _tid;
+        private shared bool _busy = false;
+
+        @property shared Tid tid() @trusted nothrow { return cast(Tid) _tid; }
+
+        @property shared bool busy() @trusted nothrow { return cast(bool) _busy; }
+        @property shared void busy(bool busy) @trusted nothrow { _busy = cast(shared) busy; }
+ 
+        this(Tid tid, bool busy = false) @trusted nothrow {
+            this._tid = cast(shared) tid;
+            this._busy = cast(shared) busy;
+        }
     }
 
-    private size_t workerCounter = 0;
-    private Worker[size_t] workers;
+    private SyncLock workerLock;
+
+    private shared size_t workerCounter = 0;
+    private shared Worker[size_t] workers;
 
     this(in size_t workerNumber) @trusted {
         this.workerNumber = workerNumber;
 
         for(size_t i = 0; i < workerNumber; i++) {
-            this.workers[i] = Worker(spawn(&spawnWorker, cast(shared) i, cast(shared) this));
+            this.workers[i] = cast(shared) Worker(spawn(&spawnWorker, cast(shared) i, cast(shared) this));
         }
+
+        workerLock = new SyncLock();
     }
 
     void submitWork(WorkDelegate work) @trusted {
-        foreach(worker; this.workers) {
-            // Prioritize sending work to free workers
-            if(!worker.busy) {
-                send(worker.tid, Work(work));
-                worker.busy = true;
-                return;
+        synchronized(workerLock) {
+            foreach(id, ref worker; this.workers) {
+                // Prioritize sending work to free workers
+                if(!worker.busy) {
+                    send(worker.tid, Work(work));
+                    worker.busy = true;
+                    return;
+                }
+            }
+            // All workers busy
+            if(workerCounter > workerNumber) {
+                workerCounter = 0;
             }
         }
-        // All workers busy
-        if(workerCounter > workerNumber) workerCounter = 0;
 
         // Send to the next worker. workerCounter distributes evenly work among the busy workers.
-        send(workers[workerCounter++].tid, Work(work));
+        send(workers[atomicOp!"+="(this.workerCounter, 1)].tid, Work(work));
     }
 
     shared package void notifyBusy(in size_t id, in bool busy) @safe {
-        if(id > this.workers.length) return;
-        this.workers[id].busy = busy;
+        synchronized(workerLock) {
+            if(id > this.workers.length) return;
+            this.workers[id].busy = busy;
+        }
     }
 }
 
@@ -92,9 +113,6 @@ class ThreadWorker {
     private shared(ThreadPool) pool;
 
     private bool running = true;
-    private size_t counter1 = 0;
-    private size_t counter2 = 0;
-    private Work[size_t] workQueue;
 
     this(in size_t id, shared(ThreadPool) pool) @safe nothrow {
         this.id = id;
@@ -106,9 +124,19 @@ class ThreadWorker {
         import core.thread;
 
         do {
-            receiveTimeout(1.msecs,
+            receive(
                 (Work work) {
-                    workQueue[counter1++] = work;
+                    pool.notifyBusy(id, true);
+                    debug(mango_concurrencyInfo) {
+                        import std.stdio;
+                        writeln("Executing work in thread, ", id);
+                    }
+                    work.work();
+                    pool.notifyBusy(id, false);
+                    debug(mango_concurrencyInfo) {
+                        import std.stdio;
+                        writeln("Executing work complete in thread, ", id);
+                    }
                 },
                 (string s) {
                     if(s == "stop") {
@@ -116,16 +144,12 @@ class ThreadWorker {
                     }
                 }
             );
-
-            if(workQueue.keys.length < 1) {
-                pool.notifyBusy(id, false);
-                Thread.sleep(50.msecs);
-            } else pool.notifyBusy(id, true);
-
-            Work work = workQueue[counter2++];
-            work.work();
-            workQueue.remove(counter2);
         } while(running);
+
+        debug(mango_concurrencyInfo) {
+            import std.stdio;
+            writeln("Worker ", id, " exiting");
+        }
     }
 }
 
