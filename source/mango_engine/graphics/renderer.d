@@ -74,10 +74,6 @@ abstract class Renderer {
     }
 
     private void evtHook_render(Event e) @system {
-        debug {
-            import std.stdio;
-            writeln("Event caught!");
-        }
         render();
     }
 

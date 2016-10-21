@@ -55,7 +55,7 @@ private alias checkSupport = gl_check;
 
 package shared bool failedContext = false;
 
-package shared Logger glfwErrorLogger;
+package shared Logger backendLogger;
 
 void gl_check() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
@@ -71,7 +71,7 @@ extern(C) private void glfwErrorCallback(int error, const char* description) @sy
         failedContext = true;
     }
 
-    (cast(Logger) glfwErrorLogger).logError("GLFW ERROR " ~ to!string(error) ~ ", " ~ toDString(description));
+    (cast(Logger) backendLogger).logError("GLFW ERROR " ~ to!string(error) ~ ", " ~ toDString(description));
 }
 
 /++
@@ -97,7 +97,7 @@ class GLBackend : Backend {
     this(Logger logger) @trusted {
         super(logger);
         // TODO: init logger based on logger class provided
-        glfwErrorLogger = cast(shared) new ConsoleLogger("GLFW Error Logger");
+        backendLogger = cast(shared) new ConsoleLogger("GLBackend");
     }
 
     /// Loads the core methods of OpenGL (1.1+)

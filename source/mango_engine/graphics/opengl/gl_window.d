@@ -33,11 +33,12 @@ module mango_engine.graphics.opengl.gl_window;
 
 import mango_engine.graphics.opengl.gl_backend;
 import mango_engine.graphics.window;
+import mango_engine.logging;
 
 import blocksound.util : toCString, toDString;
 
 import derelict.glfw3;
-import derelict.opengl3.gl3 : glGetString, GL_VERSION;
+import derelict.opengl3.gl3 : glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
 import std.conv;
 
@@ -70,10 +71,10 @@ class GLWindow : Window {
         GLBackend.loadCoreMethods(); // Load the non-deprecated methods (core)
 
         string glVersion = toDString(glGetString(GL_VERSION));
-        debug {
-            import std.stdio;
-            writeln("GL_VERSION: ", glVersion);
-        }
+        // backendLogger: from gl_backend.d
+        (cast(Logger) backendLogger).logInfo("GL_VERSION: " ~ glVersion);
+        (cast(Logger) backendLogger).logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
+        (cast(Logger) backendLogger).logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
     }
     
     override {

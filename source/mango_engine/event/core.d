@@ -75,7 +75,7 @@ class EventManager {
     this(GameManager game) @safe {
         import core.cpuid;
         this.game = game;
-        game.logger.logDebug("Thread Pool created with " ~ to!string(coresPerCPU()) ~ " threads.");
+        game.logger.logInfo("This CPU has " ~ to!string(coresPerCPU()) ~ " cores avaliable. Assigning one worker thread to each.");
         this.pool = new ThreadPool(coresPerCPU()); 
 
         this.evtQueueLock = new shared SyncLock();

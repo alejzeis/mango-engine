@@ -17,6 +17,8 @@ module mango_engine.mango;
 
 import mango_engine.logging;
 
+import std.conv;
+
 version(mango_GLBackend) {
     import mango_engine.graphics.opengl.gl_backend;
     
@@ -28,6 +30,8 @@ version(mango_VKBackend) {
 
     private shared VKBackend vkBackend;
 }
+
+immutable string MANGO_VERSION = "v1.0.0-SNAPSHOT";
 
 /// Enum to represent different Graphics APIs used by the backend.
 enum GraphicsBackendType {
@@ -82,6 +86,10 @@ bool mango_hasInitialized() @safe nothrow {
 void mango_init(GraphicsBackendType backendType) @system {
     Logger logger = new ConsoleLogger("BackendInit");
 
+    logger.logInfo("Mango Engine version " ~ MANGO_VERSION ~ " built on \"" ~ __DATE__ ~ " " ~ __TIME__ ~ "\"");
+    logger.logDebug("Compiled with OpenGL support: " ~ to!string(mango_hasGLSupport()));
+    logger.logDebug("Compiled with Vulkan support: " ~ to!string(mango_hasVKSupport()));
+
     debug(mango_debug_sysInfo) {
         import std.stdio : writeln;
         logger.logDebug("Initializing engine...");
@@ -90,7 +98,7 @@ void mango_init(GraphicsBackendType backendType) @system {
     final switch(backendType) {
         case GraphicsBackendType.API_OPENGL:
             version(mango_GLBackend) {
-                logger.logDebug("Initializing OpenGL backend.");
+                logger.logInfo("Initializing OpenGL backend.");
                 GLBackend _glBackend = new GLBackend(logger);
                 _glBackend.loadLibraries(); // TODO: ARGS
                 logger.logDebug("Loaded libraries.");
@@ -101,7 +109,7 @@ void mango_init(GraphicsBackendType backendType) @system {
             break;
         case GraphicsBackendType.API_VULKAN:
             version(mango_VKBackend) {
-                logger.logDebug("Initializing Vulkan backend.");
+                logger.logInfo("Initializing Vulkan backend.");
                 vkBackend = new VKBackend();
                 vkBackend.loadLibraries();
                 logger.logDebug("Loaded libraries.");
