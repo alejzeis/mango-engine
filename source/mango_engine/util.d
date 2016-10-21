@@ -59,7 +59,9 @@ class ThreadPool {
     }
 
     private SyncLock workerLock;
+    private SyncLock lock2;
 
+    private shared bool doStop = false;
     private shared size_t workerCounter = 0;
     private shared Worker[size_t] workers;
 
@@ -71,9 +73,13 @@ class ThreadPool {
         }
 
         workerLock = new SyncLock();
+        lock2 = new SyncLock();
     }
 
     void submitWork(WorkDelegate work) @trusted {
+        if(doStop)
+            return;
+
         synchronized(workerLock) {
             foreach(id, ref worker; this.workers) {
                 // Prioritize sending work to free workers
@@ -83,20 +89,33 @@ class ThreadPool {
                     return;
                 }
             }
-            // All workers busy
-            if(workerCounter > workerNumber) {
-                workerCounter = 0;
-            }
-        }
 
-        // Send to the next worker. workerCounter distributes evenly work among the busy workers.
-        send(workers[atomicOp!"+="(this.workerCounter, 1)].tid, Work(work));
+            // All workers busy
+            if(workerCounter >= workerNumber) {
+                workerCounter = 0; // Reset workerCounter
+            }
+
+            // Send to the next worker. workerCounter distributes evenly work among the busy workers.
+            send(workers[workerCounter].tid, Work(work));
+
+            atomicOp!"+="(this.workerCounter, 1);
+        }
     }
 
     shared package void notifyBusy(in size_t id, in bool busy) @safe {
         synchronized(workerLock) {
             if(id > this.workers.length) return;
             this.workers[id].busy = busy;
+        }
+    }
+
+    /// Each thread finishes it's current task and immediately stops. 
+    void stopImmediate() {
+        synchronized(workerLock) {
+            doStop = true;
+            foreach(id, worker; this.workers) {
+                send(worker.tid, "stop");
+            }
         }
     }
 }
@@ -124,7 +143,12 @@ class ThreadWorker {
         import core.thread;
 
         do {
-            receive(
+            bool recieved = receiveTimeout(1000.msecs,
+                (string s) {
+                    if(s == "stop") {
+                        running = false;
+                    }
+                },
                 (Work work) {
                     pool.notifyBusy(id, true);
                     debug(mango_concurrencyInfo) {
@@ -136,11 +160,6 @@ class ThreadWorker {
                     debug(mango_concurrencyInfo) {
                         import std.stdio;
                         writeln("Executing work complete in thread, ", id);
-                    }
-                },
-                (string s) {
-                    if(s == "stop") {
-                        running = false;
                     }
                 }
             );
