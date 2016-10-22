@@ -87,12 +87,14 @@ class GameManager {
         this._logger = cast(shared) new ConsoleLogger("Game");
     }
 
-    void run() {
+    void run() @system {
         import core.thread : Thread;
 
         enforce(!running, new Exception("Game is already running!"));
 
         running = true;
+
+        ulong ticks = 0;
 
         size_t fps = 300; // TODO: allow configuration
         long time = 1000 / fps;
@@ -104,8 +106,7 @@ class GameManager {
             sw.reset();
             sw.start();
 
-            TickEvent te = new TickEvent();
-            te.testString = "this is a tick event.";
+            TickEvent te = new TickEvent(ticks);
 
             eventManager.fireEvent(te);
             eventManager.update();
@@ -118,6 +119,7 @@ class GameManager {
                     logger.logWarn("Can't keep up! (" ~ to!string(sw.peek.msecs) ~ " > " ~ to!string(time) ~ ")");
                 }
             }
+            ticks++;
         }
 
         logger.logDebug("Cleaning up...");

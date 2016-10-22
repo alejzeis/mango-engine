@@ -44,7 +44,11 @@ abstract class Event {
 
 /// Event that is fired each tick.
 class TickEvent : Event {
-    string testString;
+    immutable ulong currentTick;
+
+    this(in ulong currentTick) @safe nothrow pure {
+        this.currentTick = currentTick;
+    }
 }
 
 /// Event that is fired when the engine begins to clean up.
