@@ -84,6 +84,14 @@ class EventManager {
 
         this.evtQueueLock = new shared SyncLock();
         this.hookLock = new shared SyncLock();
+
+        registerEventHook(EngineCleanupEvent.classinfo.name,
+            EventHook(&this.stop, false) 
+        );
+    }
+
+    private void stop(Event e) @trusted {
+        pool.stopImmediate();
     }
 
     /++

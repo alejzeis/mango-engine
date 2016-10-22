@@ -34,6 +34,9 @@ module mango_engine.graphics.opengl.gl_window;
 import mango_engine.graphics.opengl.gl_backend;
 import mango_engine.graphics.window;
 import mango_engine.logging;
+import mango_engine.game;
+import mango_engine.event.core;
+import mango_engine.event.input;
 
 import blocksound.util : toCString, toDString;
 
@@ -42,8 +45,16 @@ import derelict.opengl3.gl3 : glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
 import std.conv;
 
+package __gshared GLWindow[GLFWwindow*] windows;
+
+extern(C) void glwindow_glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
+    windows[window].onKey(key, scancode);
+}
+
 class GLWindow : Window {
     private GLFWwindow* window;
+    private shared size_t keyEventCounter;
+    private shared KeyPressEvent[size_t] keyEvents;
 
     this(in string title, in uint width, in uint height, SyncType syncType) @safe {
         super(title, width, height, syncType);
@@ -75,9 +86,38 @@ class GLWindow : Window {
         (cast(Logger) backendLogger).logInfo("GL_VERSION: " ~ glVersion);
         (cast(Logger) backendLogger).logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
         (cast(Logger) backendLogger).logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
+
+        glfwSetKeyCallback(window, &glwindow_glfwKeyCallback);
+    }
+
+    package void onKey(int key, int scancode) @system nothrow {
+        import core.atomic;
+        keyEvents[atomicOp!"+="(keyEventCounter, 1)] = cast(shared) new KeyPressEvent(key, scancode);
+    }
+
+    private void evtHook_processInput(Event e) @system {
+        glfwPollEvents();
+
+        size_t[] toRemove;
+        foreach(key, event; keyEvents) {
+            game.eventManager.fireEvent(cast(KeyPressEvent) event);
+        }
+
+        foreach(t; toRemove)
+            keyEvents.remove(t);
+
+        if(glfwWindowShouldClose(window)) {
+            game.stop();
+        }
     }
     
     override {
+        protected void setGame_() @system {
+            game.eventManager.registerEventHook(TickEvent.classinfo.name,
+                EventHook(&this.evtHook_processInput, false)
+            );
+        }
+
         shared void updateBuffers() @system {
             glfwSwapBuffers(cast(GLFWwindow*) window);
         }

@@ -80,6 +80,8 @@ class GameManager {
 
         loadedScenesLock = new SyncLock();
         sceneLock = new SyncLock();
+
+        window.setGame(this);
     }
     
     private void initLogger() @trusted {
@@ -126,6 +128,12 @@ class GameManager {
 
         eventManager.fireEvent(new EngineCleanupEvent());
         eventManager.update();
+    }
+    
+    void stop() @safe {
+        synchronized(this) {
+            running = false;
+        }
     }
 
     void loadScene(Scene scene) @trusted {

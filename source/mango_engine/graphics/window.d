@@ -32,6 +32,7 @@
 module mango_engine.graphics.window;
 
 import mango_engine.mango;
+import mango_engine.game;
 import mango_engine.graphics.backend;
 
 /// Represents different screen sync types
@@ -56,6 +57,7 @@ class WindowContextFailedException : Exception {
     renders on.
 +/
 abstract class Window {
+    private shared GameManager _game;
     private shared string _title;
     private shared uint _width;
     private shared uint _height;
@@ -75,6 +77,8 @@ abstract class Window {
     @property uint height() @safe nothrow { return _height; }
     /// The type of synchronization the window is using.
     @property SyncType syncType() @safe nothrow { return _syncType; }
+
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
     protected this(in string title, in uint width, in uint height, SyncType syncType) @safe nothrow {
         this._title = title;
@@ -111,7 +115,14 @@ abstract class Window {
         resize_(width, height);
     }
 
+    /// Used ONLY by GameManager. DO NOT CALL!
+    final void setGame(GameManager game) @trusted {
+        this._game = cast(shared) game;
+        setGame_();
+    }
+
     shared abstract void updateBuffers() @system;
+    protected abstract void setGame_() @system;
     protected abstract void setSync_(in SyncType syncType) @system;
     protected abstract void setTitle_(in string title) @system;
     protected abstract void resize_(in uint width, in uint height) @system;
