@@ -62,13 +62,20 @@ class GLShaderProgram : ShaderProgram {
     private void setup() @trusted {
         programId = glCreateProgram();
     }
+
+    /// Sets the shader for use.
+    void use() @system {
+        glUseProgram(programId);
+    }
     
     override {
         void prepareProgram() @system {
             glLinkProgram(programId);
+
+            glValidateProgram(programId);
         }
         
-        void addShader_(shared Shader shader_) @system {
+        void addShader_(Shader shader_) @system {
             GLShader shader = cast(GLShader) shader_;
             if(!shader) {
                 throw new InvalidArgumentException("Shader must be instance of GLShader!");
@@ -76,7 +83,7 @@ class GLShaderProgram : ShaderProgram {
             glAttachShader(programId, shader.shaderId);
         }
         
-        void removeShader_(shared Shader shader_) @system {
+        void removeShader_(Shader shader_) @system {
             GLShader shader = cast(GLShader) shader_;
             if(!shader) {
                 throw new InvalidArgumentException("Shader must be instance of GLShader!");
@@ -87,7 +94,7 @@ class GLShaderProgram : ShaderProgram {
 }
 
 class GLShader : Shader {
-    package GLuint shaderId;
+    package shared GLuint shaderId;
 
     /// Please use Shader.shaderFactory()
     this(in string filename, in ShaderType type) @safe {
@@ -107,11 +114,11 @@ class GLShader : Shader {
     }
 
     override {
-        shared protected void onShaderAdd() @system nothrow {
+        protected void onShaderAdd() @system nothrow {
             glCompileShader(shaderId);
         }
 
-        shared protected void cleanup() @system nothrow {
+        protected void cleanup() @system nothrow {
             glDeleteShader(shaderId);
         }
     }

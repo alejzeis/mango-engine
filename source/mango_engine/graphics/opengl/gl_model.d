@@ -38,6 +38,8 @@ import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
 import mango_engine.graphics.opengl.gl_backend;
 import mango_engine.graphics.opengl.gl_types;
+import mango_engine.graphics.opengl.gl_texture;
+import mango_engine.graphics.opengl.gl_shader;
 
 import derelict.opengl3.gl3;
 
@@ -73,7 +75,7 @@ class GLModel : Model {
     +/
     @property protected void drawCount(shared size_t drawCount) @safe nothrow { _drawCount = drawCount; }
 
-    this(GameManager game, Vertex[] vertices, uint[] indices , Texture texture, ShaderProgram shader) @trusted {
+    this(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted {
         super(game, vertices, indices, texture, shader);
         
         gl_check();
@@ -84,16 +86,16 @@ class GLModel : Model {
     }
 
     private void setup() @system {
-        _vao = VAO.generateNew();
-        (cast(VAO) _vao).bind();
+        _vao = cast(shared) VAO.generateNew();
+        vao.bind();
 
-        auto indicesVBO = VBO(GL_ELEMENT_ARRAY_BUFFER);
+        auto indicesVBO = new VBO(GL_ELEMENT_ARRAY_BUFFER);
         indicesVBO.bind();
         indicesVBO.setData(indices);
         //indicesVBO.setDataRaw(indices.ptr, cast(GLsizei) (indices.length * uint.sizeof));
 
         //------------------- Vertices
-        auto verticesVBO = VBO(GL_ARRAY_BUFFER);
+        auto verticesVBO = new VBO(GL_ARRAY_BUFFER);
         verticesVBO.bind();
         verticesVBO.setDataRaw(
             cast(void*) positionVerticesToFloats(cast(Vertex[]) vertices),
@@ -104,12 +106,12 @@ class GLModel : Model {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, cast(void*) 0);
         //------------------- End Vertices
 
-        vboList[VBOIndexes.VBO_VERTICES] = verticesVBO;
-        vboList[VBOIndexes.VBO_INDICES] = indicesVBO;
+        vboList[VBOIndexes.VBO_VERTICES] = cast(shared) verticesVBO;
+        vboList[VBOIndexes.VBO_INDICES] = cast(shared) indicesVBO;
 
         // Check if using Textured vertices.
-        if(cast(GLTexturedVertex[]) vertices) {
-            auto textureVBO = VBO(GL_ARRAY_BUFFER);
+        if(cast(TexturedVertex[]) vertices) {
+            auto textureVBO = new VBO(GL_ARRAY_BUFFER);
             textureVBO.bind();
             textureVBO.setDataRaw(
                 cast(void*) textureVerticesToFloats(cast(Vertex[]) vertices),
@@ -119,10 +121,10 @@ class GLModel : Model {
             glEnableVertexAttribArray(1);
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, cast(void*) 0);
 
-            vboList[VBOIndexes.VBO_TEXTURES] = textureVBO;
+            vboList[VBOIndexes.VBO_TEXTURES] = cast(shared) textureVBO;
         }
 
-        (cast(VAO) _vao).unbind();
+        vao.unbind();
     }
 
     /// Cleanup resources used by the Model.
@@ -136,8 +138,11 @@ class GLModel : Model {
     }
     
     override protected void render_(Renderer renderer) @system {
-        vao.bind();
+        (cast(GLTexture) texture).bind();
+        (cast(GLShaderProgram) shader).use();
 
+        vao.bind();
+        
         glDrawElements(GL_TRIANGLES, cast(GLsizei) drawCount,
             GL_UNSIGNED_INT,
             cast(void*) 0

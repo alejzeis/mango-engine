@@ -122,10 +122,6 @@ class EventManager {
                         }
                     }
                 } else {
-                    debug {
-                        import std.stdio;
-                        writeln("Not found: ", event.classinfo.name);
-                    }
                 }
                 toRemove ~= key; // Add the event's key to the remove list.
             }

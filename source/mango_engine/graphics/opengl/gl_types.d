@@ -31,27 +31,12 @@
 */
 module mango_engine.graphics.opengl.gl_types;
 
-import mango_engine.graphics.model : Vertex;
+import mango_engine.graphics.model : Vertex, TexturedVertex;
 import mango_engine.graphics.opengl.gl_backend : gl_check;
 
 import derelict.opengl3.gl3;
 
 import gl3n.linalg;
-
-/++
-    Struct that represents a Vertex with
-    a position vector(vec3), and a texture
-    vector (vec2).
-+/
-class GLTexturedVertex : Vertex {
-    /// Vector containing the texture coordinates.
-    vec2 texture;
-
-    this(vec3 position, vec2 texture) @safe nothrow {
-        super(position);
-        this.texture = texture;
-    }
-}
 
 /++ 
     Converts an array of Vertexs (vertices) to a raw float array that
@@ -74,11 +59,11 @@ float[] positionVerticesToFloats(Vertex[] vertices) @safe {
 +/
 float[] textureVerticesToFloats(Vertex[] vertices) @trusted {
     float[] data;
-    if(!(cast(GLTexturedVertex[]) vertices)) {
+    if(!(cast(TexturedVertex[]) vertices)) {
         import mango_engine.exception : InvalidArgumentException;
         throw new InvalidArgumentException("Vertices not type of TexturedVertex!");
     }
-    foreach(vertex; (cast(GLTexturedVertex[]) vertices)) {
+    foreach(vertex; (cast(TexturedVertex[]) vertices)) {
         data ~= vertex.texture.x;
         data ~= vertex.texture.y;
     }
@@ -86,7 +71,7 @@ float[] textureVerticesToFloats(Vertex[] vertices) @trusted {
 }
 
 /// Represents an OpenGL VAO.
-struct VAO {
+class VAO {
     private GLuint _vao;
 
     /// GLuint id for the VAO.
@@ -108,7 +93,7 @@ struct VAO {
         GLuint id;
         glGenVertexArrays(1, &id);
 
-        return VAO(id);
+        return new VAO(id);
     }
 
     /// Bind the VAO and make it ready for use from OpenGL.
@@ -131,7 +116,7 @@ struct VAO {
 }
 
 /// Represents an OpenGL VBO.
-struct VBO {
+class VBO {
     private GLenum _type;
     private GLuint _vbo;
 

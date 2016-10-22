@@ -53,6 +53,7 @@ class GLRenderer : Renderer {
     }
 
     private void setup() @trusted {
+        glClearColor(0f, 100f, 0f, 0f);
         glEnable(GL_TEXTURE_2D);
     }
 

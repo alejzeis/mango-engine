@@ -60,13 +60,13 @@ abstract class ShaderProgram {
         mixin(GenFactory!("ShaderProgram"));
     }
 
-    void addShader(shared Shader shader) @trusted {
+    void addShader(Shader shader) @trusted {
         synchronized(lock) {
             enforce(!(shader.type in shaders), new InvalidArgumentException("Attempted to add multiple shaders of same type."));
     
             shader.onShaderAdd();
             addShader_(shader);
-            shaders[shader.type] = shader;
+            shaders[shader.type] = cast(shared) shader;
         }
     }
 
@@ -74,8 +74,8 @@ abstract class ShaderProgram {
         synchronized(lock) {
             enforce(shaderType in shaders, new InvalidArgumentException("Attempted to remove Shader that was not added."));
     
-            removeShader_(shaders[shaderType]);
-            shaders[shaderType].onShaderRemove();
+            removeShader_((cast(Shader)shaders[shaderType]));
+            (cast(Shader) shaders[shaderType]).onShaderRemove();
             shaders.remove(shaderType);
         }
     }
@@ -83,8 +83,8 @@ abstract class ShaderProgram {
     /// This is called after all the shaders have been added.
     abstract void prepareProgram() @system;
     
-    abstract void addShader_(shared Shader shader) @system;
-    abstract void removeShader_(shared Shader shader) @system;
+    abstract void addShader_(Shader shader) @system;
+    abstract void removeShader_(Shader shader) @system;
 }
 
 /// Represents a type of Shader.
@@ -118,10 +118,10 @@ abstract class Shader {
         mixin(GenFactory!("Shader", "filename, type"));
     }
     
-    shared protected void onShaderRemove() @system {
+    protected void onShaderRemove() @system {
         cleanup();
     }
 
-    shared protected abstract void onShaderAdd() @system;
-    shared protected abstract void cleanup() @system;
+    protected abstract void onShaderAdd() @system;
+    protected abstract void cleanup() @system;
 }

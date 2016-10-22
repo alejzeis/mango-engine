@@ -52,6 +52,21 @@ class Vertex {
     }
 }
 
+/++
+    Struct that represents a Vertex with
+    a position vector(vec3), and a texture
+    vector (vec2).
++/
+class TexturedVertex : Vertex {
+    /// Vector containing the texture coordinates.
+    vec2 texture;
+
+    this(vec3 position, vec2 texture) @safe nothrow {
+        super(position);
+        this.texture = texture;
+    }
+}
+
 abstract class Model {
     private GameManager game;
     private SyncLock lock;
@@ -64,7 +79,7 @@ abstract class Model {
 
     @property uint[] indices() @trusted nothrow { return cast(uint[]) _indices; }
     
-    @property shared Texture texture() @trusted nothrow { return cast(Texture) _texture; }
+    @property Texture texture() @trusted nothrow { return cast(Texture) _texture; }
     @property shared void texture(shared Texture texture) @safe {
         synchronized(lock) {
             this._texture = texture;
