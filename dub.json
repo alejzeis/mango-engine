@@ -8,7 +8,7 @@
 	"license": "BSD 3-clause",
 	"configurations": [
 		{
-			"name": "normal",
+			"name": "openglSupport",
 			"targetType": "library",
 			"targetPath": "bin",
 			"dependencies": {
@@ -24,7 +24,7 @@
 			]
 		},
 		{
-			"name": "vulkanSupport",
+			"name": "opengl_vulkanSupport",
 			"targetType": "library",
 			"targetPath": "bin",
 			"dependencies": {

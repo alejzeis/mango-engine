@@ -34,6 +34,18 @@ module mango_engine.util;
 import std.concurrency;
 import core.atomic;
 
+template InterfaceClassFactory(string type, string clazz, string params) {
+    const char[] InterfaceClassFactory = "
+    version(mango_GLBackend) {
+        import mango_engine.graphics.opengl.gl_" ~ type ~ ";
+
+        return new GL" ~ clazz ~ "(" ~ params ~ ");
+    } else {
+        throw new Exception(\"No backend has been compiled in!\");
+    }
+    ";
+}
+
 /// Dummy class used for locks.
 class SyncLock {
 
