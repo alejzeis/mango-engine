@@ -36,6 +36,9 @@ import mango_engine.graphics.backend;
 import mango_engine.graphics.opengl.gl_backend;
 
 class Texture {
+    /// The name of the texture that helps identify it.
+    immutable string name;
+    /// The filename which the texture is located in. THIS IS DIFFERENT FROM THE name!
     immutable string filename;
     immutable bool useAlpha;
 
@@ -47,15 +50,16 @@ class Texture {
     /// The height of the texture in pixels.
     @property uint height() @safe nothrow { return _height; }
 
-    protected this(in string filename, in bool useAlpha = true) @safe nothrow {
+    protected this(in string name, in string filename, in bool useAlpha = true) @safe nothrow {
+        this.name = name;
         this.filename = filename;
         this.useAlpha = useAlpha;
     }
 
-    static Texture textureFactory(in string filename, in bool useAlpha, GraphicsBackendType backend) @safe {
+    static Texture textureFactory(in string name, in string filename, in bool useAlpha, GraphicsBackendType backend) @safe {
         import mango_engine.graphics.opengl.gl_texture : GLTexture;
 
-        mixin(GenFactory!("Texture", "filename, useAlpha"));
+        mixin(GenFactory!("Texture", "name, filename, useAlpha"));
     }
 
     abstract void cleanup() @system;

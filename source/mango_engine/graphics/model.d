@@ -80,9 +80,9 @@ abstract class Model {
     @property uint[] indices() @trusted nothrow { return cast(uint[]) _indices; }
     
     @property Texture texture() @trusted nothrow { return cast(Texture) _texture; }
-    @property shared void texture(shared Texture texture) @safe {
+    @property void texture(Texture texture) @trusted {
         synchronized(lock) {
-            this._texture = texture;
+            this._texture = cast(shared) texture;
         }
     }
     

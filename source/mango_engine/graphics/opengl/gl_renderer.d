@@ -57,7 +57,16 @@ class GLRenderer : Renderer {
         glEnable(GL_TEXTURE_2D);
     }
 
+    package void executor_render() @system {
+        super.render();
+    }
+
     override {
+
+        void render() @safe nothrow {
+            // Do nothing, the GLExecutor will decide when we render things.
+        }
+
         protected void prepareRender() @system {
             super.prepareRender();
             glClear(GL_COLOR_BUFFER_BIT);

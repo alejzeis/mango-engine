@@ -45,6 +45,8 @@ import std.exception : enforce;
 import std.datetime;
 
 class GameManager {
+    immutable GraphicsBackendType backendType;
+
     private shared Window _window;
     private shared Renderer _renderer;
     private shared Scene _scene;
@@ -70,6 +72,7 @@ class GameManager {
     private shared bool running = false;
 
     this(Window window, GraphicsBackendType backend) @trusted {
+        this.backendType = backend;
         this._window = cast(shared) window;
         initLogger();
 

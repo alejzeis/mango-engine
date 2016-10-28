@@ -41,8 +41,8 @@ class GLTexture : Texture {
     private GLuint textureId;
 
     /// Use Texture.textureFactory()
-    this(in string filename, in bool useAlpha = true) @safe {
-        super(filename, useAlpha);
+    this(in string name, in string filename, in bool useAlpha = true) @safe {
+        super(name, filename, useAlpha);
 
         gl_check();
 

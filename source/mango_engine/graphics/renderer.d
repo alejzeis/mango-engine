@@ -78,7 +78,7 @@ abstract class Renderer {
     }
 
     /// Render the scene
-    final void render() @trusted {
+    void render() @trusted {
         prepareRender();
         foreach(model; scene.models) {
             renderModel(cast(shared) model); //TODO: synchronization

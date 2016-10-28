@@ -82,10 +82,10 @@ class GLWindow : Window {
         GLBackend.loadCoreMethods(); // Load the non-deprecated methods (core)
 
         string glVersion = toDString(glGetString(GL_VERSION));
-        // backendLogger: from gl_backend.d
-        (cast(Logger) backendLogger).logInfo("GL_VERSION: " ~ glVersion);
-        (cast(Logger) backendLogger).logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
-        (cast(Logger) backendLogger).logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
+        // getBackendLogger: from gl_backend.d
+        getBackendLogger().logInfo("GL_VERSION: " ~ glVersion);
+        getBackendLogger().logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
+        getBackendLogger().logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
 
         glfwSetKeyCallback(window, &glwindow_glfwKeyCallback);
     }

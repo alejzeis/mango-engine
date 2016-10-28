@@ -55,7 +55,16 @@ private alias checkSupport = gl_check;
 
 package shared bool failedContext = false;
 
-package shared Logger backendLogger;
+package shared Logger _backendLogger;
+package shared GLExecutor _executor;
+
+Logger getBackendLogger() @trusted nothrow {
+    return cast(Logger) _backendLogger;
+}
+
+GLExecutor getExecutor() @trusted nothrow {
+    return cast(GLExecutor) _executor;
+} 
 
 void gl_check() @safe { // Check if we were compiled with OpenGL support.
     if(!mango_hasGLSupport()) {
@@ -71,7 +80,7 @@ extern(C) private void glfwErrorCallback(int error, const char* description) @sy
         failedContext = true;
     }
 
-    (cast(Logger) backendLogger).logError("GLFW ERROR " ~ to!string(error) ~ ", " ~ toDString(description));
+    getBackendLogger().logError("GLFW ERROR " ~ to!string(error) ~ ", " ~ toDString(description));
 }
 
 /++
@@ -97,7 +106,7 @@ class GLBackend : Backend {
     this(Logger logger) @trusted {
         super(logger);
         // TODO: init logger based on logger class provided
-        backendLogger = cast(shared) new ConsoleLogger("GLBackend");
+        _backendLogger = cast(shared) new ConsoleLogger("GLBackend");
     }
 
     /// Loads the core methods of OpenGL (1.1+)
@@ -203,4 +212,75 @@ class GLBackend : Backend {
             }
         }
     }
+}
+
+import mango_engine.graphics.opengl.gl_renderer;
+
+import std.concurrency;
+import std.datetime;
+
+alias GLExecuteOrder = void delegate() @system;
+
+package struct GLExecuteOrderMessage {
+    shared GLExecuteOrder order;
+}
+
+/++
+    This class handles all OpenGL operations
+    in it's own thread. This is due to the fact
+    that OpenGL does not support multi-threading well.
+
+    Any operations that call OpenGL context methods are
+    routed to this thread using message passing.
++/
+class GLExecutor {
+    private shared Tid _threadTid;
+    private shared bool _running = false;
+    private shared GLRenderer _renderer;
+
+    @property protected GLRenderer renderer() @trusted nothrow { return cast(GLRenderer) _renderer; }
+
+    @property protected Tid threadTid() @trusted nothrow { return cast(Tid) _threadTid; }
+
+    this() @trusted {
+        _running = true;
+        _threadTid = cast(shared) spawn(&startExecutorThread, cast(shared) this);
+    }
+
+    package void doRun() @system {
+        getBackendLogger().logDebug("Entering GLExecutor thread.");
+
+        do {
+            uint counter = 0;
+            while(processOrder() != false && counter < 15) {
+                counter++;
+            }
+
+            if(_renderer !is null) {
+                renderer.executor_render();
+            }
+        } while(_running);
+
+        getBackendLogger().logDebug("Exiting GLExecutor thread.");
+    }
+
+    private bool processOrder() @system {
+        return receiveTimeout(0.msecs,
+            (GLExecuteOrderMessage m) {
+                m.order();
+            }
+        );
+    }
+
+    package void stopExecutor() @safe nothrow {
+        _running = false;
+    }
+
+    package void setRenderer(GLRenderer renderer) @trusted nothrow {
+        _renderer = cast(shared) renderer;
+    }
+}
+
+private void startExecutorThread(shared GLExecutor executor) @system {
+    (cast(GLExecutor) executor).doRun();
 }
