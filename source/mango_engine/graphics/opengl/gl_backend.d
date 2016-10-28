@@ -1,6 +1,8 @@
 module mango_engine.graphics.opengl.gl_backend;
 
 version(mango_GLBackend) {
+    import mango_engine.game;
+
     import mango_engine.mango;
     import mango_engine.logging;
 
@@ -10,8 +12,8 @@ version(mango_GLBackend) {
         }
 
         override {
-            protected void doInit() @trusted {
-
+            protected GameManager doInit() @trusted {
+                return null; // Placeholder
             }
 
             protected void doDestroy() @trusted {

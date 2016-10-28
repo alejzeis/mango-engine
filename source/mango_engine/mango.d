@@ -1,5 +1,6 @@
 module mango_engine.mango;
 
+import mango_engine.game;
 import mango_engine.logging;
 
 /// The type of backend that the engine can/will use.
@@ -16,21 +17,24 @@ abstract class EngineInitalizer {
         this.logger = logger;
     }
 
-    abstract protected void doInit() @trusted;
+    abstract protected GameManager doInit() @trusted;
 
     abstract protected void doDestroy() @trusted;
 }
 
 /++
-    Initalizes the engine.
+    Initalizes the engine. This will return the engine's
+    sole GameManager instance, which can be configured further.
 +/
-void mango_init(BackendType type) @safe {
+GameManager mango_init(BackendType type) @safe {
     version(mango_GLBackend) {
         import mango_engine.graphics.opengl.gl_backend : GLInitalizer;
 
         if(type == BackendType.BACKEND_OPENGL) {
             EngineInitalizer initalizer = new GLInitalizer(new ConsoleLogger("GLBackendInitalizer"));
-            initalizer.doInit();
+            return initalizer.doInit();
         }
     }
+
+    throw new Exception("No backend has been compiled in!");
 }
