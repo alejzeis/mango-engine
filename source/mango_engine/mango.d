@@ -3,6 +3,15 @@ module mango_engine.mango;
 import mango_engine.game;
 import mango_engine.logging;
 
+/// The Global logger for Mango-Engine. This is statically initalized.
+__gshared Logger GLOBAL_LOGGER;
+/// The Version of the library.
+immutable string VERSION = "v2.0.0-SNAPSHOT";
+
+static this() {
+    GLOBAL_LOGGER = new ConsoleLogger("Mango-Global");
+}
+
 /// The type of backend that the engine can/will use.
 enum BackendType {
     BACKEND_OPENGL,
@@ -17,16 +26,19 @@ abstract class EngineInitalizer {
         this.logger = logger;
     }
 
-    abstract protected GameManager doInit() @trusted;
+    abstract protected GameManagerFactory doInit() @trusted;
 
     abstract protected void doDestroy() @trusted;
 }
 
 /++
-    Initalizes the engine. This will return the engine's
-    sole GameManager instance, which can be configured further.
+    Initalizes the engine. This will return a GameManagerFactory
+    instance, which can be used to construct a GameManager
+    instance.
 +/
-GameManager mango_init(BackendType type) @safe {
+GameManagerFactory mango_init(BackendType type) @trusted {
+    GLOBAL_LOGGER.logInfo("Mango-Engine version " ~ VERSION ~ ", built with " ~ __VENDOR__ ~ " on " ~ __TIMESTAMP__);
+    
     version(mango_GLBackend) {
         import mango_engine.graphics.opengl.gl_backend : GLInitalizer;
 
