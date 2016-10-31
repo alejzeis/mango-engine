@@ -51,7 +51,7 @@ enum BackendType {
 
 /// Class used to initalize the engine depending on the backend.
 abstract class EngineInitalizer {
-    private Logger logger;
+    protected Logger logger;
 
     package this(Logger logger) @safe nothrow {
         this.logger = logger;

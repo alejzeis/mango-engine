@@ -33,11 +33,43 @@ module mango_engine.graphics.opengl.gl_window;
 
 version(mango_GLBackend) {
     import mango_engine.graphics.window;
+    import mango_engine.mango;
+    import mango_engine.graphics.opengl.gl_backend;
+
+    import blocksound.util : toCString, toDString; // TODO: move to mango_stl
+
+    import derelict.glfw3.glfw3;
+    import derelict.opengl3.gl3 : glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
     class GLWindow : Window {
+        __gshared {
+            private GLFWwindow* window;
+        }
 
-        this(in string title, in uint width, in uint height, SyncType syncType) @safe nothrow {
+        this(in string title, in uint width, in uint height, SyncType syncType) @safe {
             super(title, width, height, syncType);
+
+            setupWindow();
+        }
+
+        private void setupWindow() @trusted {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MANGO_GL_VERSION_MAJOR);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, MANGO_GL_VERSION_MINOR);
+
+            window = glfwCreateWindow(width, height, toCString(title), null, null);
+
+            // TODO: check context
+
+            glfwMakeContextCurrent(window);
+
+            glbackend_loadCoreMethods();
+
+            string glVersion = toDString(glGetString(GL_VERSION));
+        
+            GLOBAL_LOGGER.logInfo("GL_VERSION: " ~ glVersion);
+            GLOBAL_LOGGER.logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
+            GLOBAL_LOGGER.logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
         }
 
         override {
@@ -46,6 +78,10 @@ version(mango_GLBackend) {
             }
 
             protected void setTitle_(in string title) @system {
+
+            }
+
+            protected void setVisible_(in bool visible) @system {
 
             }
 

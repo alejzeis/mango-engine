@@ -31,20 +31,54 @@
 */
 module mango_engine.graphics.opengl.gl_backend;
 
+immutable MANGO_GL_VERSION_MAJOR = 3;
+immutable MANGO_GL_VERSION_MINOR = 3;
+
 version(mango_GLBackend) {
     import mango_engine.game;
     import mango_engine.mango;
     import mango_engine.logging;
+    import mango_engine.util;
     import mango_engine.graphics.renderer;
+
+    import derelict.opengl3.gl3;
+    import derelict.glfw3.glfw3;
+    import derelict.freeimage.freeimage;
+    import derelict.util.exception;
+
+    package void glbackend_loadCoreMethods() @system {
+        DerelictGL3.reload();
+    }
 
     class GLInitalizer : EngineInitalizer { 
         this(Logger logger) @safe nothrow {
             super(logger);
         }
 
+        private void loadLibraries() @system {
+            try {
+                DerelictGL3.load();
+            } catch(Exception e) {
+                throw new Exception("Failed to load library OpenGL!");
+            }
+
+            mixin(LoadLibraryTemplate!("GLFW", "GLFW3", "glfw3"));
+            DerelictFI.missingSymbolCallback = &this.fi_missingSymbolCB;
+            mixin(LoadLibraryTemplate!("FreeImage", "FI", "FreeImage"));
+        }
+
+        private ShouldThrow fi_missingSymbolCB(string symbolName) @safe {
+            version(mango_warnOnMissingSymbol) {
+                logger.logWarn("Missing FreeImage Symbol! " ~ symbolName);
+            } else {
+                logger.logDebug(" (WARNING) Missing FreeImage Symbol! " ~ symbolName);
+            }
+            return ShouldThrow.No;
+        }
+
         override {
             protected GameManagerFactory doInit() @trusted {
-                // TODO: load libraries
+                loadLibraries();
 
                 GameManagerFactory factory = new GameManagerFactory(BackendType.BACKEND_OPENGL);
                 factory.setRenderer(Renderer.factoryBuild());

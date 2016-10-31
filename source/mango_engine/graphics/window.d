@@ -57,12 +57,13 @@ abstract class Window {
     private shared string _title;
     private shared uint _width;
     private shared uint _height;
+    private shared bool _visible = false;
 
     /// The title of the Window.
     @property string title() @safe nothrow { return _title; }
     /// The title of the Window.
     @property void title(in string title) @trusted {
-        _title = title;
+        _title = title; // TODO: concurrency fixes!
         setTitle_(title);
     }
 
@@ -70,6 +71,13 @@ abstract class Window {
     @property uint width() @safe nothrow { return _width; }
     /// The height of the window in pixels.
     @property uint height() @safe nothrow { return _height; }
+    /// If the window is currently being displayed.
+    @property bool visible() @safe nothrow { return _visible; }
+    /// Show or hide the window.
+    @property void visible(bool visible) @trusted { 
+        _visible = visible;
+        setVisible_(visible);
+    }
 
     protected this(in string title, in uint width, in uint height, SyncType syncType) @safe nothrow {
         this.syncType = syncType;
@@ -85,5 +93,6 @@ abstract class Window {
 
     abstract void updateBuffers() @system;
     protected abstract void setTitle_(in string title) @system;
+    protected abstract void setVisible_(in bool visible) @system;
     protected abstract void resize_(in uint width, in uint height) @system;
 }

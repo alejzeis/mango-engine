@@ -108,6 +108,8 @@ class GameManager {
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
 
+        
+
         this.logger.logDebug("Entering main loop.");
 
         do {

@@ -34,7 +34,9 @@ module mango_engine.util;
 import std.concurrency;
 import core.atomic;
 
-alias SyncLock = mango_stl.misc.Lock;
+import mango_stl.misc : Lock;
+
+alias SyncLock = Lock;
 
 template InterfaceClassFactory(string type, string clazz, string params) {
     const char[] InterfaceClassFactory = "
@@ -48,7 +50,31 @@ template InterfaceClassFactory(string type, string clazz, string params) {
     ";
 }
 
-
+template LoadLibraryTemplate(string libName, string suffix, string winName) {
+    const char[] LoadLibraryTemplate = "
+    version(Windows) {
+        try {
+            Derelict" ~ suffix ~ ".load();
+            logger.logDebug(\"Loaded " ~ libName ~ "\");
+        } catch(Exception e) {
+            logger.logDebug(\"Failed to load library \" ~ libName ~ \", searching in provided libs\");
+            try {
+                Derelict" ~ suffix ~ ".load(\"lib/" ~ winName ~ ".dll\");
+                logger.logDebug(\"Loaded " ~ libName ~ "\");
+            } catch(Exception e) {
+                throw new Exception(\"Failed to load library " ~ libName ~ ":\" ~ e.classinfo.name);
+            }
+        }
+    } else {
+        try {
+            Derelict" ~ suffix ~ ".load();
+            logger.logDebug(\"Loaded " ~ libName ~ "\");
+        } catch(Exception e) {
+            throw new Exception(\"Failed to load library " ~ libName ~ ":\" ~ e.classinfo.name);
+        }
+    }
+    ";
+}
 
 /// Utility class to manage a group of threads.
 class ThreadPool {
