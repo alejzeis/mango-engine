@@ -32,6 +32,8 @@
 module mango_engine.graphics.window;
 
 import mango_engine.util;
+import mango_engine.game;
+import mango_engine.event.graphics;
 import mango_engine.graphics.renderer;
 
 /// Represents different screen sync types
@@ -55,6 +57,7 @@ class WindowContextFailedException : Exception {
 abstract class Window {
     immutable SyncType syncType;
 
+    private shared GameManager _game;
     private shared Renderer _renderer;
 
     private shared string _title;
@@ -62,6 +65,7 @@ abstract class Window {
     private shared uint _height;
     private shared bool _visible = false;
 
+    @property protected GameManager game() @trusted nothrow { return cast(GameManager) _game; }
     @property protected Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
 
     /// The title of the Window.
@@ -69,6 +73,7 @@ abstract class Window {
     /// The title of the Window.
     @property void title(in string title) @trusted {
         _title = title; // TODO: concurrency fixes!
+        game.eventManager.fireEvent(new WindowTitleChangeEvent(title, this));
         setTitle_(title);
     }
 
@@ -79,8 +84,9 @@ abstract class Window {
     /// If the window is currently being displayed.
     @property bool visible() @safe nothrow { return _visible; }
     /// Show or hide the window.
-    @property void visible(bool visible) @trusted { 
+    @property void visible(bool visible) @trusted {
         _visible = visible;
+        game.eventManager.fireEvent(visible ? new WindowShowEvent(this) : new WindowShowEvent(this));
         setVisible_(visible);
     }
 
@@ -95,6 +101,21 @@ abstract class Window {
 
     static Window factoryBuild(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
         mixin(InterfaceClassFactory!("window", "Window", "renderer, title, width, height, syncType"));
+    }
+
+    /++
+        FOR INTERNAL USE!!!
+
+        Because a Window instance is created before a 
+        GameManager instance exists, the GameManager needs
+        to notify the Window class that it has been created,
+        and pass an instance of itself to the window.
+    +/
+    void gamemanager_notify(GameManager game) @trusted nothrow 
+    in {
+        assert(_game is null, "Tried to set GameManager when it was already set.");
+    } body {
+        this._game = cast(shared) game;
     }
 
     protected abstract void setTitle_(in string title) @system;

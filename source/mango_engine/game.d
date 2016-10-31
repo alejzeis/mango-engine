@@ -98,6 +98,8 @@ class GameManager {
     package this(Logger logger, Window window, Renderer renderer, BackendType type) @trusted {
         this.backendType = type;
 
+        window.gamemanager_notify(this);
+
 		this._logger = cast(shared) logger;
         this._renderer = cast(shared) renderer;
         this._window = cast(shared) window;
@@ -115,6 +117,8 @@ class GameManager {
         size_t fps = 300; // TODO: allow configuration
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
+
+        this.eventManager.fireEvent(new GameManagerStartEvent());
 
         this.logger.logDebug("Entering main loop.");
 

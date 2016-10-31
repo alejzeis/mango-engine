@@ -52,6 +52,11 @@ class TickEvent : Event {
     }
 }
 
+/// Event that is fired when the GameManager.run() method is called.
+class GameManagerStartEvent : Event {
+
+}
+
 /// Event that is fired when the engine begins to clean up.
 class EngineCleanupEvent : Event {
 
