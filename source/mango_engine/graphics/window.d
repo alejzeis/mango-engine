@@ -32,6 +32,7 @@
 module mango_engine.graphics.window;
 
 import mango_engine.util;
+import mango_engine.graphics.renderer;
 
 /// Represents different screen sync types
 enum SyncType {
@@ -54,10 +55,14 @@ class WindowContextFailedException : Exception {
 abstract class Window {
     immutable SyncType syncType;
 
+    private shared Renderer _renderer;
+
     private shared string _title;
     private shared uint _width;
     private shared uint _height;
     private shared bool _visible = false;
+
+    @property protected Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
 
     /// The title of the Window.
     @property string title() @safe nothrow { return _title; }
@@ -79,7 +84,8 @@ abstract class Window {
         setVisible_(visible);
     }
 
-    protected this(in string title, in uint width, in uint height, SyncType syncType) @safe nothrow {
+    protected this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted nothrow {
+        this._renderer = cast(shared) renderer;
         this.syncType = syncType;
 
         this._title = title;
@@ -87,11 +93,10 @@ abstract class Window {
         this._height = height;
     }
 
-    static Window factoryBuild(in string title, in uint width, in uint height, SyncType syncType) {
-        mixin(InterfaceClassFactory!("window", "Window", "title, width, height, syncType"));
+    static Window factoryBuild(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
+        mixin(InterfaceClassFactory!("window", "Window", "renderer, title, width, height, syncType"));
     }
 
-    abstract void updateBuffers() @system;
     protected abstract void setTitle_(in string title) @system;
     protected abstract void setVisible_(in bool visible) @system;
     protected abstract void resize_(in uint width, in uint height) @system;

@@ -44,7 +44,7 @@ version(mango_GLBackend) {
     import derelict.opengl3.gl3;
     import derelict.glfw3.glfw3;
     import derelict.freeimage.freeimage;
-    import derelict.util.exception;
+    import derelict.util.exception; 
 
     package void glbackend_loadCoreMethods() @system {
         DerelictGL3.reload();
@@ -65,6 +65,10 @@ version(mango_GLBackend) {
             mixin(LoadLibraryTemplate!("GLFW", "GLFW3", "glfw3"));
             DerelictFI.missingSymbolCallback = &this.fi_missingSymbolCB;
             mixin(LoadLibraryTemplate!("FreeImage", "FI", "FreeImage"));
+
+            if(!glfwInit()) {
+                throw new Exception("Failed to init GLFW (glfwInit)!");
+            }
         }
 
         private ShouldThrow fi_missingSymbolCB(string symbolName) @safe {

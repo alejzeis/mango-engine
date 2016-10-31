@@ -34,7 +34,9 @@ module mango_engine.graphics.opengl.gl_window;
 version(mango_GLBackend) {
     import mango_engine.graphics.window;
     import mango_engine.mango;
+    import mango_engine.graphics.renderer;
     import mango_engine.graphics.opengl.gl_backend;
+    import mango_engine.graphics.opengl.gl_renderer;
 
     import blocksound.util : toCString, toDString; // TODO: move to mango_stl
 
@@ -46,10 +48,10 @@ version(mango_GLBackend) {
             private GLFWwindow* window;
         }
 
-        this(in string title, in uint width, in uint height, SyncType syncType) @safe {
-            super(title, width, height, syncType);
+        this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @safe {
+            super(renderer, title, width, height, syncType);
 
-            setupWindow();
+            renderer.submitOperation(&this.setupWindow);
         }
 
         private void setupWindow() @trusted {
@@ -70,13 +72,12 @@ version(mango_GLBackend) {
             GLOBAL_LOGGER.logInfo("GL_VERSION: " ~ glVersion);
             GLOBAL_LOGGER.logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
             GLOBAL_LOGGER.logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
+
+            assert((cast(GLRenderer) renderer) !is null, "renderer not instanceof GLRenderer!");
+            (cast(GLRenderer) renderer).registerWindowId(window);
         }
 
         override {
-            void updateBuffers() @system {
-
-            }
-
             protected void setTitle_(in string title) @system {
 
             }

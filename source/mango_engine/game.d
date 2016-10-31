@@ -42,7 +42,7 @@ import std.datetime;
 
 import core.thread;
 
-/// Used to create a GameManager instance.
+/// Used to create a GameManager instance. DO NOT SHARE ACROSS THREADS.
 class GameManagerFactory {
     immutable BackendType backendType;
 
@@ -59,6 +59,14 @@ class GameManagerFactory {
 
     void setRenderer(Renderer renderer) @safe nothrow {
         this.renderer = renderer;
+    }
+
+    Window getWindow() @safe nothrow { 
+        return window;
+    }
+
+    Renderer getRenderer() @safe nothrow {
+        return renderer;
     }
 
     GameManager build() @safe {
@@ -107,8 +115,6 @@ class GameManager {
         size_t fps = 300; // TODO: allow configuration
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
-
-        
 
         this.logger.logDebug("Entering main loop.");
 

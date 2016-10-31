@@ -56,7 +56,10 @@ abstract class Logger {
 
 class ConsoleLogger : Logger {
     import std.stdio : write, writeln;
+
     import consoled;
+
+    import core.thread : Thread;
 
     this(in string name) @safe nothrow {
         super(name);
@@ -64,7 +67,7 @@ class ConsoleLogger : Logger {
 
     override {
         void logDebug_(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
             resetColors();
         }

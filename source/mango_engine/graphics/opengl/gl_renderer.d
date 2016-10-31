@@ -34,9 +34,20 @@ module mango_engine.graphics.opengl.gl_renderer;
 version(mango_GLBackend) {
     import mango_engine.graphics.renderer;
 
-    class GLRenderer : Renderer {
-        override void render() @system {
+    import derelict.opengl3.gl3;
+    import derelict.glfw3.glfw3;
 
+    class GLRenderer : Renderer {
+        private __gshared GLFWwindow* windowId;
+
+        package void registerWindowId(GLFWwindow* window) @trusted nothrow {
+            this.windowId = window;
+        }
+
+        override void render() @system {
+            glClear(GL_COLOR_BUFFER_BIT);
+            
+            glfwSwapBuffers(windowId);
         }
     }
 }

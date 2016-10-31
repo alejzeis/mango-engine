@@ -58,6 +58,10 @@ abstract class Renderer {
         mixin(InterfaceClassFactory!("renderer", "Renderer", ""));
     }
 
+    void submitOperation(RendererOperation operation) @trusted {
+        send(threadTid, RendererOperationMessage(operation));
+    }
+
     private void doRun() @system {
         do {
             uint counter = 0;
@@ -85,5 +89,8 @@ abstract class Renderer {
 }
 
 private void startRendererThread(shared Renderer renderer) @system {
+    import core.thread : Thread;
+
+    Thread.getThis().name = "Renderer";
     (cast(Renderer) renderer).doRun();
 }
