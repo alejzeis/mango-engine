@@ -34,6 +34,8 @@ module mango_engine.util;
 import std.concurrency;
 import core.atomic;
 
+alias SyncLock = mango_stl.misc.Lock;
+
 template InterfaceClassFactory(string type, string clazz, string params) {
     const char[] InterfaceClassFactory = "
     version(mango_GLBackend) {
@@ -46,10 +48,7 @@ template InterfaceClassFactory(string type, string clazz, string params) {
     ";
 }
 
-/// Dummy class used for locks.
-class SyncLock {
 
-}
 
 /// Utility class to manage a group of threads.
 class ThreadPool {
