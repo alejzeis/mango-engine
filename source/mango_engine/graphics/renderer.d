@@ -31,6 +31,7 @@
 */
 module mango_engine.graphics.renderer;
 
+import mango_engine.mango;
 import mango_engine.util;
 
 import std.concurrency;
@@ -76,7 +77,13 @@ abstract class Renderer {
     private bool processOperation() @system {
         return receiveTimeout(0.msecs,
             (RendererOperationMessage m) {
-                m.operation();
+                try {
+                    m.operation();
+                } catch(Exception e) {
+                    GLOBAL_LOGGER.logError("Error while processing operation!");
+                    GLOBAL_LOGGER.logException(e);
+                    _running = false;
+                }
             }
         );
     }

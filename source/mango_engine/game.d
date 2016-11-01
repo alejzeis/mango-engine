@@ -131,6 +131,12 @@ class GameManager {
             this.eventManager.fireEvent(te);
             this.eventManager.update();
 
+            if(!renderer.running) {
+                this.logger.logError("It appears the renderer thread has crashed! Exiting...");
+                this.running = false;
+                break;
+            }
+
             sw.stop();
             if(sw.peek.msecs < time) {
                 Thread.sleep((time - sw.peek.msecs).msecs);

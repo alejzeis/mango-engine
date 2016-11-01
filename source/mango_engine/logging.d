@@ -52,10 +52,13 @@ abstract class Logger {
     abstract void logWarn(in string message) @safe;
 
     abstract void logError(in string message) @safe;
+
+    abstract void logException(Exception e) @safe;
 }
 
 class ConsoleLogger : Logger {
     import std.stdio : write, writeln;
+    import std.file;
 
     import consoled;
 
@@ -67,27 +70,46 @@ class ConsoleLogger : Logger {
 
     override {
         void logDebug_(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(this) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logInfo(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(this) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logWarn(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(this) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logError(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(this) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
+        }
+
+        void logException(Exception e) @trusted {
+            debug {
+                logError(e.toString());
+            }
+            std.file.write("exceptionReport-" ~ e.classinfo.name ~ ".txt", "Exception Dump:\n\n" ~ e.toString());
         }
     }
 }

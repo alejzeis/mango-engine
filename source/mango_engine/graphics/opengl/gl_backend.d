@@ -33,6 +33,7 @@ module mango_engine.graphics.opengl.gl_backend;
 
 immutable MANGO_GL_VERSION_MAJOR = 3;
 immutable MANGO_GL_VERSION_MINOR = 3;
+immutable MANGO_GL_VERSION = "3.3";
 
 version(mango_GLBackend) {
     import mango_engine.game;

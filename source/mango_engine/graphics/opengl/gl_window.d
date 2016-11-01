@@ -41,7 +41,13 @@ version(mango_GLBackend) {
     import blocksound.util : toCString, toDString; // TODO: move to mango_stl
 
     import derelict.glfw3.glfw3;
-    import derelict.opengl3.gl3 : glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
+    import derelict.opengl3.gl3 : glViewport, glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
+
+    import std.conv;
+
+    extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
+        glViewport(0, 0, width, height); // Tell OpenGL the window was resized
+    } 
 
     class GLWindow : Window {
         __gshared {
@@ -54,18 +60,24 @@ version(mango_GLBackend) {
             renderer.submitOperation(&this.setupWindow);
         }
 
-        private void setupWindow() @trusted {
+        private void setupWindow() @trusted 
+        in {
+            assert((cast(GLRenderer) this.renderer) !is null, "renderer not instanceof GLRenderer!");
+        } body {
             glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MANGO_GL_VERSION_MAJOR);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, MANGO_GL_VERSION_MINOR);
 
-            window = glfwCreateWindow(width, height, toCString(title), null, null);
+            this.window = glfwCreateWindow(this.width, this.height, toCString(this.title), null, null);
+            if(!window) {
+                throw new Exception("Failed to create window! Does the host machine support OpenGL " ~ MANGO_GL_VERSION ~ "?");
+            }
 
-            // TODO: check context
-
-            glfwMakeContextCurrent(window);
+            glfwMakeContextCurrent(this.window);
 
             glbackend_loadCoreMethods();
+
+            glfwSetWindowSizeCallback(this.window, &glfw_windowSizeCallback);
 
             string glVersion = toDString(glGetString(GL_VERSION));
         
@@ -73,21 +85,33 @@ version(mango_GLBackend) {
             GLOBAL_LOGGER.logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
             GLOBAL_LOGGER.logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
 
-            assert((cast(GLRenderer) renderer) !is null, "renderer not instanceof GLRenderer!");
-            (cast(GLRenderer) renderer).registerWindowId(window);
+            (cast(GLRenderer) this.renderer).registerWindowId(this.window);
         }
 
         override {
             protected void setTitle_(in string title) @system {
-
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window title changed to " ~ title);
+                    glfwSetWindowTitle(this.window, toCString(title));
+                });
             }
 
             protected void setVisible_(in bool visible) @system {
-
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window set visible: " ~ to!string(visible));
+                    if(visible) {
+                        glfwShowWindow(this.window);
+                    } else {
+                        glfwHideWindow(this.window);
+                    }
+                });
             }
 
             protected void resize_(in uint width, in uint height) @system {
-
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window manually resized to " ~ to!string(width) ~ "x" ~ to!string(height));
+                    glfwSetWindowSize(this.window, width, height);
+                });
             }
         }
     }
