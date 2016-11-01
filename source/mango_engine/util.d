@@ -32,6 +32,7 @@
 module mango_engine.util;
 
 import std.concurrency;
+import std.conv;
 import core.atomic;
 
 import mango_stl.misc : Lock;
@@ -210,6 +211,9 @@ class ThreadWorker {
 }
 
 private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
+    import core.thread : Thread;
+    
+    Thread.getThis().name = "WorkerThread-" ~ to!string(id);
     ThreadWorker worker = new ThreadWorker(id, pool);
     worker.doRun();
 }
