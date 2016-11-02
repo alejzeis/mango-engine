@@ -42,3 +42,13 @@ class WindowTitleChangeEvent : WindowEvent {
         this.name = name;
     }
 }
+
+class WindowKeyPressedEvent : WindowEvent {
+    immutable int key;
+    
+    this(in int key, Window window) @safe nothrow {
+        super(window);
+        
+        this.key = key;
+    }
+}

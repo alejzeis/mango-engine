@@ -34,6 +34,8 @@ module mango_engine.graphics.opengl.gl_window;
 version(mango_GLBackend) {
     import mango_engine.graphics.window;
     import mango_engine.mango;
+    import mango_engine.event.core;
+    import mango_engine.event.graphics;
     import mango_engine.graphics.renderer;
     import mango_engine.graphics.opengl.gl_backend;
     import mango_engine.graphics.opengl.gl_renderer;
@@ -130,7 +132,12 @@ version(mango_GLBackend) {
             }
 
             protected void onGamemanager_notify() @system {
-
+                this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
+                    if(!keyEventQueue.isEmpty()) {
+                        KeyEvent keyEvent = keyEventQueue.pop();
+                        this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
+                    }
+                })); // TODO: fix race conditions!
             }
         }
     }
