@@ -47,6 +47,7 @@ version(mango_GLBackend) {
         override void render() @system {
             glClear(GL_COLOR_BUFFER_BIT);
             
+            glfwPollEvents();
             glfwSwapBuffers(windowId);
         }
     }

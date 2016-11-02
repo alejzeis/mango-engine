@@ -39,15 +39,30 @@ version(mango_GLBackend) {
     import mango_engine.graphics.opengl.gl_renderer;
 
     import blocksound.util : toCString, toDString; // TODO: move to mango_stl
+    import mango_stl.collections;
 
     import derelict.glfw3.glfw3;
     import derelict.opengl3.gl3 : glViewport, glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
     import std.conv;
 
+    private struct KeyEvent {
+        GLFWwindow* window;
+        int key;
+        int scancode;
+        int action;
+        int mods;
+    }
+
+    private __gshared UnsafeQueue!KeyEvent keyEventQueue;
+
     extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
         glViewport(0, 0, width, height); // Tell OpenGL the window was resized
-    } 
+    }
+    
+    extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
+        keyEventQueue.add(KeyEvent(window, key, scancode, action, mods));
+    }
 
     class GLWindow : Window {
         __gshared {
@@ -112,6 +127,10 @@ version(mango_GLBackend) {
                     this.game.logger.logDebug("Window manually resized to " ~ to!string(width) ~ "x" ~ to!string(height));
                     glfwSetWindowSize(this.window, width, height);
                 });
+            }
+
+            protected void onGamemanager_notify() @system {
+
             }
         }
     }
