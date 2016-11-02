@@ -57,12 +57,17 @@ abstract class Logger {
 }
 
 class ConsoleLogger : Logger {
-    import std.stdio : write, writeln;
-    import std.file;
+    import std.stdio : write, writeln, File;
+    import std.system : os;
+    import std.conv : to;
 
-    import consoled;
+    import mango_engine.mango : VERSION;
+    import mango_engine.util : getTimestamp, getOSString;
+
+    import consoled : writecln, FontStyle, Fg, resetColors, resetFontStyle;
 
     import core.thread : Thread;
+    import core.cpuid : coresPerCPU, processor, vendor;
 
     this(in string name) @safe nothrow {
         super(name);
@@ -106,10 +111,25 @@ class ConsoleLogger : Logger {
         }
 
         void logException(Exception e) @trusted {
+            string filename = "exceptionDump_" ~ getTimestamp() ~ ".txt";
             debug {
                 logError(e.toString());
             }
-            std.file.write("exceptionReport-" ~ e.classinfo.name ~ ".txt", "Exception Dump:\n\n" ~ e.toString());
+            logError("An exception report has been dumped to " ~ filename);
+
+            File file = File(filename, "w");
+            file.writeln("Mango-Engine exception dump at " ~ getTimestamp());
+            file.writeln("Mango-Engine version: " ~ VERSION);
+            file.writeln("Compiler: " ~ __VENDOR__ ~ ", compiled at: " ~ __TIMESTAMP__);
+            file.writeln("------------------------------------------");
+            file.writeln("System Information:");
+            file.writeln("Operating System: " ~ getOSString());
+            file.writeln("size_t length: " ~ to!string(size_t.sizeof));
+            file.writeln("CPU: " ~ vendor ~ " " ~ processor ~ " with " ~ to!string(coresPerCPU()) ~ " cores");
+            file.writeln("------------------------------------------");
+            file.writeln("Exception: \n");
+            file.write(e.toString());
+            file.close();
         }
     }
 }

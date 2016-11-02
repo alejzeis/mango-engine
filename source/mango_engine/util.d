@@ -218,6 +218,33 @@ private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
     worker.doRun();
 }
 
+string getTimestamp() @safe {
+    import std.datetime : SysTime, Clock;
+    import std.conv : to;
+
+    SysTime c = Clock.currTime();
+    return to!string(c.day) ~ "-" ~ to!string(c.month)
+     ~ "-" ~ to!string(c.year) ~ "_" ~ to!string(c.hour) ~ ":" ~ to!string(c.minute)
+     ~ ":" ~ to!string(c.second);
+}
+
+string getOSString() @safe nothrow {
+    import std.system : os, OS;
+
+    switch(os) {
+        case OS.win32:
+            return "Windows (32-bit)";
+        case OS.win64:
+            return "Windows (64-bit)";
+        case OS.osx:
+            return "OSX";
+        case OS.linux:
+            return "Linux";
+        default:
+            return "Other";
+    }
+}
+
 /++
     Reads a whole file into a string.
 
