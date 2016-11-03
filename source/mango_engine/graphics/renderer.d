@@ -70,6 +70,8 @@ abstract class Renderer {
                 counter++;
             }
 
+            if(running == false) break; // Check if processOperation caught exception
+
             render();
         } while(running);
     }

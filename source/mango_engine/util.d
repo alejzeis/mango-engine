@@ -152,7 +152,7 @@ class ThreadPool {
         synchronized(workerLock) {
             doStop = true;
             foreach(id, worker; this.workers) {
-                send(worker.tid, "stop");
+                prioritySend(worker.tid, "stop");
             }
         }
     }

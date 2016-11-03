@@ -99,6 +99,7 @@ class EventManager {
 	
 	
 	private void stop(Event evt) @trusted {
+        this.game.logger.logDebug("Called!");
         this.pool.stopImmediate();
     }
 
@@ -119,11 +120,19 @@ class EventManager {
 
     /// Update function called by GameManager
     void update(size_t limit = 25) @trusted {
+        debug {
+            import std.stdio;
+            writeln("UPDATE CALLED!");
+        }
     	if(this.eventQueue.isEmpty()) return;
     	
     	if(limit == 0) {
     		limit = size_t.max;
     	}
+        debug {
+            import std.stdio;
+            writeln("LIMIT ", limit);
+        }
     	while(!this.eventQueue.isEmpty() && limit-- > 0) {
     		Event event = this.eventQueue.pop();
     		if(event.classinfo.name in this.hooks) {
