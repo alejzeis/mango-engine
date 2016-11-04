@@ -59,6 +59,7 @@ version(mango_GLBackend) {
         private void loadLibraries() @system {
             try {
                 DerelictGL3.load();
+                this.logger.logDebug("Loaded OpenGL");
             } catch(Exception e) {
                 throw new Exception("Failed to load library OpenGL!");
             }

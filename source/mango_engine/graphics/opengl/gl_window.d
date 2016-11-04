@@ -63,7 +63,7 @@ version(mango_GLBackend) {
     }
     
     extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
-        keyEventQueue.add(KeyEvent(window, key, scancode, action, mods));
+        keyEventQueue.add(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
     }
 
     class GLWindow : Window {
@@ -71,8 +71,12 @@ version(mango_GLBackend) {
             private GLFWwindow* window;
         }
 
-        this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @safe {
+        this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted {
             super(renderer, title, width, height, syncType);
+
+            if(keyEventQueue is null) {
+                keyEventQueue = new UnsafeQueue!KeyEvent();
+            } else keyEventQueue.clear();
 
             renderer.submitOperation(&this.setupWindow);
         }
@@ -95,6 +99,7 @@ version(mango_GLBackend) {
             glbackend_loadCoreMethods();
 
             glfwSetWindowSizeCallback(this.window, &glfw_windowSizeCallback);
+            glfwSetKeyCallback(this.window, &glfw_keyEventCallback);
 
             string glVersion = toDString(glGetString(GL_VERSION));
         
@@ -135,7 +140,15 @@ version(mango_GLBackend) {
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
                     if(!keyEventQueue.isEmpty()) {
                         KeyEvent keyEvent = keyEventQueue.pop();
+                        debug {
+                            import std.stdio;
+                            writeln("Submitting.");
+                        }
                         this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
+                        debug {
+                            import std.stdio;
+                            writeln("Submitted.");
+                        }
                     }
                 })); // TODO: fix race conditions!
             }

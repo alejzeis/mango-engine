@@ -98,13 +98,13 @@ class GameManager {
     package this(Logger logger, Window window, Renderer renderer, BackendType type) @trusted {
         this.backendType = type;
 
-        window.gamemanager_notify(this);
-
 		this._logger = cast(shared) logger;
         this._renderer = cast(shared) renderer;
         this._window = cast(shared) window;
         
         this._eventManager = cast(shared) new EventManager(this);
+
+        window.gamemanager_notify(this); // Tell Window that we have been created
     }
 
     void run() @trusted {

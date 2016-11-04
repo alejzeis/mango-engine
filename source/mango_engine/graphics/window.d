@@ -111,11 +111,12 @@ abstract class Window {
         to notify the Window class that it has been created,
         and pass an instance of itself to the window.
     +/
-    void gamemanager_notify(GameManager game) @trusted nothrow 
+    void gamemanager_notify(GameManager game) @trusted 
     in {
         assert(_game is null, "Tried to set GameManager when it was already set.");
     } body {
         this._game = cast(shared) game;
+        onGamemanager_notify();
     }
 
     protected abstract void onGamemanager_notify() @system;

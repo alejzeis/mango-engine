@@ -109,6 +109,9 @@ class EventManager {
     +/
     void fireEvent(Event event) @trusted {
         this.eventQueue.add(event); // Queue is thread-safe
+        debug {
+            //this.eventQueue.debugDump();
+        }
     }
 
     void registerEventHook(in string eventType, EventHook hook) @trusted {
@@ -132,6 +135,10 @@ class EventManager {
                     foreach(EventHook hook; this.hooks[event.classinfo.name]) {
                         if(hook.runAsync) { // Check if we can run this in a worker
                             pool.submitWork(() {
+                                debug {
+                                    import std.stdio;
+                                    //writeln("Executing: ", event.classinfo.name);
+                                }
                                 hook.hook(cast(Event) event);
                             });
                         } else {

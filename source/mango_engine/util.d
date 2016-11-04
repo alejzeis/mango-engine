@@ -119,14 +119,13 @@ class ThreadPool {
             return;
 
         synchronized(workerLock) {
-            foreach(id, ref worker; this.workers) {
+            /*foreach(id, ref worker; this.workers) {
                 // Prioritize sending work to free workers
                 if(!worker.busy) {
                     send(worker.tid, Work(work));
-                    worker.busy = true;
                     return;
                 }
-            }
+            }*/
 
             // All workers busy
             if(workerCounter >= workerNumber) {
@@ -212,8 +211,12 @@ class ThreadWorker {
 
 private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
     import core.thread : Thread;
+    import mango_engine.mango : GLOBAL_LOGGER;
     
     Thread.getThis().name = "WorkerThread-" ~ to!string(id);
+
+    GLOBAL_LOGGER.logDebug("Starting worker #" ~ to!string(id));
+
     ThreadWorker worker = new ThreadWorker(id, pool);
     worker.doRun();
 }
