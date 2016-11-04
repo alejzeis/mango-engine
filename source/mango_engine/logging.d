@@ -62,20 +62,24 @@ class ConsoleLogger : Logger {
     import std.conv : to;
 
     import mango_engine.mango : VERSION;
-    import mango_engine.util : getTimestamp, getOSString;
+    import mango_engine.util : getTimestamp, getOSString, SyncLock;
 
     import consoled : writecln, FontStyle, Fg, resetColors, resetFontStyle;
 
     import core.thread : Thread;
     import core.cpuid : coresPerCPU, processor, vendor;
 
+    private shared SyncLock lock;
+
     this(in string name) @safe nothrow {
         super(name);
+        
+        this.lock = new SyncLock();
     }
 
     override {
         void logDebug_(in string message) @trusted {
-            synchronized(this) {
+            synchronized(this.lock) {
                 writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
                 resetColors();
@@ -84,7 +88,7 @@ class ConsoleLogger : Logger {
         }
 
         void logInfo(in string message) @trusted {
-            synchronized(this) {
+            synchronized(this.lock) {
                 writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
                 resetColors();
@@ -93,7 +97,7 @@ class ConsoleLogger : Logger {
         }
 
         void logWarn(in string message) @trusted {
-            synchronized(this) {
+            synchronized(this.lock) {
                 writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
                 resetColors();
@@ -102,7 +106,7 @@ class ConsoleLogger : Logger {
         }
 
         void logError(in string message) @trusted {
-            synchronized(this) {
+            synchronized(this.lock) {
                 writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", Fg.white, message);
 
                 resetColors();

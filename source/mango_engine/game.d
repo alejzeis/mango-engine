@@ -114,7 +114,7 @@ class GameManager {
 
         ulong ticks = 0;
 
-        size_t fps = 300; // TODO: allow configuration
+        size_t fps = 144; // TODO: allow configuration
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
 
@@ -149,8 +149,16 @@ class GameManager {
         } while(this.running);
         
         this.logger.logDebug("Cleaning up...");
+
+        if(this.renderer.running) {
+            this.renderer.stop();
+        }
         
         this.eventManager.fireEvent(new EngineCleanupEvent());
         this.eventManager.update(0);
+    }
+
+    void stop() @safe {
+        this.running = false;
     }
 }

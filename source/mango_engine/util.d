@@ -35,6 +35,7 @@ import std.concurrency;
 import std.conv;
 import core.atomic;
 
+import mango_stl.collections;
 import mango_stl.misc : Lock;
 
 alias SyncLock = Lock;
@@ -114,18 +115,22 @@ class ThreadPool {
         lock2 = new SyncLock();
     }
 
-    void submitWork(WorkDelegate work) @trusted {
+    void submitWork(WorkDelegate work, string debugTest = "none") @trusted {
         if(doStop)
             return;
 
+        debug(mango_concurrencyInfo) {
+            import std.stdio;
+            writeln("Submitting to workers: ", debugTest);
+        }
         synchronized(workerLock) {
-            /*foreach(id, ref worker; this.workers) {
+            foreach(id, ref worker; this.workers) {
                 // Prioritize sending work to free workers
                 if(!worker.busy) {
                     send(worker.tid, Work(work));
                     return;
                 }
-            }*/
+            }
 
             // All workers busy
             if(workerCounter >= workerNumber) {
@@ -166,13 +171,16 @@ package shared struct Work {
 class ThreadWorker {
     immutable size_t id;
 
-    private shared(ThreadPool) pool;
+    private shared ThreadPool pool;
 
     private bool running = true;
+
+    private Queue!Work workQueue;
 
     this(in size_t id, shared(ThreadPool) pool) @safe nothrow {
         this.id = id;
         this.pool = pool;
+        this.workQueue = new Queue!Work();
     }
 
     void doRun() @trusted {
@@ -180,26 +188,24 @@ class ThreadWorker {
         import core.thread;
 
         do {
-            bool recieved = receiveTimeout(1000.msecs,
+            bool recieved = receiveTimeout(0.msecs,
                 (string s) {
                     if(s == "stop") {
                         running = false;
                     }
                 },
                 (Work work) {
-                    pool.notifyBusy(id, true);
-                    debug(mango_concurrencyInfo) {
-                        import std.stdio;
-                        writeln("Executing work in thread, ", id);
-                    }
-                    work.work();
-                    pool.notifyBusy(id, false);
-                    debug(mango_concurrencyInfo) {
-                        import std.stdio;
-                        writeln("Executing work complete in thread, ", id);
-                    }
+                    this.workQueue.add(work);
                 }
             );
+            if(this.workQueue.isEmpty()) continue;
+
+            Work work = this.workQueue.pop();
+            work.work();
+
+            if(this.workQueue.isEmpty()) {
+                this.pool.notifyBusy(this.id, false);
+            } else this.pool.notifyBusy(this.id, true);
         } while(running);
 
         debug(mango_concurrencyInfo) {

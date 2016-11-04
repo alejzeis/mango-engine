@@ -140,7 +140,7 @@ class EventManager {
                                     //writeln("Executing: ", event.classinfo.name);
                                 }
                                 hook.hook(cast(Event) event);
-                            });
+                            }, event.classinfo.name);
                         } else {
                             hook.hook(cast(Event) event);
                         }

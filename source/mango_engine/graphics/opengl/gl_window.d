@@ -150,7 +150,15 @@ version(mango_GLBackend) {
                             writeln("Submitted.");
                         }
                     }
-                })); // TODO: fix race conditions!
+                }, false)); // TODO: get to work on it's own thread?
+
+                this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
+                    if(this.window is null) return;
+                    
+                    if(glfwWindowShouldClose(this.window)) {
+                        this.game.stop();
+                    }
+                }));
             }
         }
     }
