@@ -44,32 +44,83 @@ import core.thread;
 
 /// Used to create a GameManager instance. DO NOT SHARE ACROSS THREADS.
 class GameManagerFactory {
+    /// The Backend that will be used by the GameManager
     immutable BackendType backendType;
 
     private Window window;
     private Renderer renderer;
 
+    /++
+        Internal Constructor used by the Backend's Initializer
+        class.
+    +/
     this(BackendType type) @safe nothrow {
         this.backendType = backendType;
     }
 
+    /++
+        Sets the Window that this GameManager will render
+        to.
+
+        Params:
+                window =    The Window which will be rendered to.
+    +/
     void setWindow(Window window) @safe nothrow {
         this.window = window;
     }
 
+    /++
+        Sets the Renderer that this GameManager will
+        use to render scenes. This is already set by
+        the Backend's Initalizer, there is no need
+        to reset it.
+
+        Params:
+                renderer =  The Renderer which will render
+                            scenes for the GameManager.
+    +/
     void setRenderer(Renderer renderer) @safe nothrow {
         this.renderer = renderer;
     }
 
+    /++
+        Gets the Window the GameManager will use
+        for rendering. If it was not set, will return
+        null.
+
+        Returns: The Window the GameManager will use for
+                 rendering.
+    +/
     Window getWindow() @safe nothrow { 
         return window;
     }
 
+    /++
+        Gets the Renderer the GameManager will
+        use to render.
+
+        Returns: The Renderer the GameMAnager will
+                 use to render scenes.
+    +/
     Renderer getRenderer() @safe nothrow {
         return renderer;
     }
 
-    GameManager build() @safe {
+    /++
+        Build the GameManager using all the values
+        set by the set_ methods. 
+        
+        Make sure you have set all values before building, 
+        this is checked in debug mode using assert()
+        but in release you could end up with a nasty suprise!
+
+        Returns: A new GameManager instance.
+    +/
+    GameManager build() @safe 
+    in {
+        assert(window !is null, "Window is null: please set all values before building!");
+        assert(renderer !is null, "Renderer is null: please set all values before building!");
+    } body {
         return new GameManager(
             new ConsoleLogger("Game"),
             window,
@@ -79,7 +130,9 @@ class GameManagerFactory {
     }
 }
 
+/// Main class that handles the Game.
 class GameManager {
+    /// The Backend the GameManager is using for graphics output.
     immutable BackendType backendType;
 
     private shared Window _window;
@@ -88,13 +141,18 @@ class GameManager {
     private shared EventManager _eventManager;
     private shared Logger _logger;
 
+    /// Returns: The Window this GameManager is rendering to.
     @property Window window() @trusted nothrow { return cast(Window) _window; }
+    /// Returns: The Renderer this GameManager is using to render.
     @property Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
+    /// Returns: The EventManager this GameManager is using to handle events.
     @property EventManager eventManager() @trusted nothrow { return cast(EventManager) _eventManager; }
+    /// Returns: The Logger this GameManager is using for Logging.
     @property Logger logger() @trusted nothrow { return cast(Logger) _logger; }
 
     private shared bool running = false;
 
+    /// Internal constructor used by GameManagerFactory
     package this(Logger logger, Window window, Renderer renderer, BackendType type) @trusted {
         this.backendType = type;
 
@@ -107,6 +165,10 @@ class GameManager {
         window.gamemanager_notify(this); // Tell Window that we have been created
     }
 
+    /++
+        Main run method. This will block
+        until the Game has finished running.
+    +/
     void run() @trusted {
         enforce(!this.running, new Exception("Game is already running!"));
 
@@ -158,7 +220,17 @@ class GameManager {
         this.eventManager.update(0);
     }
 
-    void stop() @safe {
+    /++
+        Tell the GameManager to stop running and quit.
+        The GameManager will then cleanup resources and exit
+        the run() method.
+    +/
+    void stop() @safe nothrow {
         this.running = false;
+    }
+
+    /// Returns: If the GameManager is currently running.
+    bool isRunning() @safe nothrow {
+        return this.running;
     }
 }

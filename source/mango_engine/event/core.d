@@ -45,6 +45,7 @@ abstract class Event {
 
 /// Event that is fired each tick.
 class TickEvent : Event {
+    /// The current tick the GameManager is on.
     immutable ulong currentTick;
 
     this(in ulong currentTick) @safe nothrow pure {
@@ -73,6 +74,7 @@ struct EventHook {
     immutable bool runAsync = true;
 }
 
+/// Handles all Event related activities.
 class EventManager {
 	__gshared {
 		private ThreadPool pool;
@@ -106,6 +108,9 @@ class EventManager {
         Adds an event to the firing queue. The event
         will be fired on the next EventManager update
         pass.
+
+        Params:
+                event =  The Event to be fired.    
     +/
     void fireEvent(Event event) @trusted {
         this.eventQueue.add(event); // Queue is thread-safe
@@ -114,6 +119,17 @@ class EventManager {
         }
     }
 
+    /++
+        Registers an EventHook for a specific Event.
+        This hook will be called when the event is fired.
+
+        Params:
+                eventType =     The event's full class name.
+                                This is given by [EventClass].classinfo.name
+
+                hook =          The EventHook to be called when
+                                the Event is fired. 
+    +/
     void registerEventHook(in string eventType, EventHook hook) @trusted {
         synchronized(this.hookLock) {
             this.hooks[eventType] ~= cast(shared) hook;
