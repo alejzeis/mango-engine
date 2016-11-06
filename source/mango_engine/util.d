@@ -59,7 +59,7 @@ template LoadLibraryTemplate(string libName, string suffix, string winName) {
             Derelict" ~ suffix ~ ".load();
             logger.logDebug(\"Loaded " ~ libName ~ "\");
         } catch(Exception e) {
-            logger.logDebug(\"Failed to load library \" ~ libName ~ \", searching in provided libs\");
+            logger.logDebug(\"Failed to load library \"" ~ libName ~ "\", searching in provided libs\");
             try {
                 Derelict" ~ suffix ~ ".load(\"lib/" ~ winName ~ ".dll\");
                 logger.logDebug(\"Loaded " ~ libName ~ "\");
