@@ -9,7 +9,7 @@
 		"derelict-glfw3": "3.1.0",
 		"derelict-util": "2.0.6",
 		"derelict_extras-sndfile": "2.0.1",
-		"erupted": "1.4.6",
+		"erupted": "1.4.7",
 		"gl3n": "1.3.1",
 		"mango-stl": "~master",
 		"wayland-client-d": "1.8.90",
