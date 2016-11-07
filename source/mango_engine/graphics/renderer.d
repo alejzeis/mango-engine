@@ -55,7 +55,7 @@ abstract class Renderer {
         threadTid = spawn(&startRendererThread, cast(shared) this);
     }
 
-    static Renderer factoryBuild() @safe {
+    static Renderer build() @safe {
         mixin(InterfaceClassFactory!("renderer", "Renderer", ""));
     }
 

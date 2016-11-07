@@ -99,7 +99,7 @@ abstract class Window {
         this._height = height;
     }
 
-    static Window factoryBuild(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
+    static Window build(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
         mixin(InterfaceClassFactory!("window", "Window", "renderer, title, width, height, syncType"));
     }
 

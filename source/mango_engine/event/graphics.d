@@ -75,6 +75,13 @@ class WindowTitleChangeEvent : WindowEvent {
 }
 
 class WindowKeyPressedEvent : WindowEvent {
+    /++
+        The key which was pressed. The values
+        are found in derelict.glfw3.glfw3.
+
+        For example, the A key's value is
+        GLFW_KEY_A.
+    +/
     immutable int key;
     
     this(in int key, Window window) @safe nothrow {
