@@ -87,7 +87,7 @@ version(mango_GLBackend) {
                 loadLibraries();
 
                 GameManagerFactory factory = new GameManagerFactory(BackendType.BACKEND_OPENGL);
-                factory.setRenderer(Renderer.factoryBuild());
+                factory.setRenderer(Renderer.build());
                 return factory;
             }
 
