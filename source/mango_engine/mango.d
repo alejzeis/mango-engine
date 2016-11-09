@@ -39,6 +39,8 @@ __gshared Logger GLOBAL_LOGGER;
 /// The Version of the library.
 immutable string VERSION = "v2.0.0-SNAPSHOT";
 
+shared BackendType currentBackendType;
+
 static this() {
     GLOBAL_LOGGER = new ConsoleLogger("Mango-Global");
 }
@@ -72,6 +74,8 @@ GameManagerFactory mango_init(BackendType type) @trusted {
     
     version(mango_GLBackend) {
         import mango_engine.graphics.opengl.gl_backend : GLInitalizer;
+
+        currentBackendType = type;
 
         if(type == BackendType.BACKEND_OPENGL) {
             EngineInitalizer initalizer = new GLInitalizer(new ConsoleLogger("GLBackendInitalizer"));

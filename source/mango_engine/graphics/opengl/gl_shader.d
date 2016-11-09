@@ -33,7 +33,7 @@ version(mango_GLBackend) {
             this.programId = glCreateProgram();
         }
 
-        package void use() @system nothrow {
+        void use() @system nothrow {
             glUseProgram(this.programId);
         }
 

@@ -31,23 +31,30 @@
 */
 module mango_engine.util;
 
+import mango_stl.collections;
+import mango_stl.misc : Lock;
+
 import std.concurrency;
 import std.conv;
 import core.atomic;
-
-import mango_stl.collections;
-import mango_stl.misc : Lock;
 
 alias SyncLock = Lock;
 
 template InterfaceClassFactory(string type, string clazz, string params) {
     const char[] InterfaceClassFactory = "
-    version(mango_GLBackend) {
-        import mango_engine.graphics.opengl.gl_" ~ type ~ ";
+    import mango_engine.mango : BackendType, currentBackendType;
 
-        return new GL" ~ clazz ~ "(" ~ params ~ ");
-    } else {
-        throw new Exception(\"No backend has been compiled in!\");
+    final switch(currentBackendType) {
+        case BackendType.BACKEND_OPENGL:
+            version(mango_GLBackend) {
+                import mango_engine.graphics.opengl.gl_" ~ type ~ ";
+
+                return new GL" ~ clazz ~ "(" ~ params ~ ");
+            } else {
+                throw new Exception(\"No backend has been compiled in!\");
+            }
+        case BackendType.BACKEND_VULKAN:
+            throw new Exception(\"No support for vulkan yet!\");
     }
     ";
 }

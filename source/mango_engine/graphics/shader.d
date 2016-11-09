@@ -56,6 +56,13 @@ abstract class ShaderProgram {
         }
     }
 
+    void cleanup() @trusted {
+        foreach(type, shader; shaders) {
+            (cast(Shader) shader).cleanup();
+        }
+        shaders.clear();
+    }
+
     /++
         Prepares the ShaderProgram for use. Make
         sure to call after adding all the shaders
@@ -75,7 +82,7 @@ abstract class Shader {
 
     @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
-    this(GameManager game, in string source, in ShaderType type) @trusted nothrow {
+    protected this(GameManager game, in string source, in ShaderType type) @trusted nothrow {
         this._game = cast(shared) game;
         this.type = type;
     }
