@@ -1,6 +1,7 @@
 module mango_engine.graphics.opengl.gl_texture;
 
 version(mango_GLBackend) {
+    import mango_engine.game;
     import mango_engine.graphics.texture;
 
     import blocksound.util : toCString;
@@ -29,10 +30,10 @@ version(mango_GLBackend) {
     class GLTexture : Texture {
         __gshared package GLuint textureId;
 
-        this(in string filename, in bool useAlpha = true) @safe {
-            super(filename, useAlpha);
+        this(GameManager game, in string filename, in bool useAlpha = true) @safe {
+            super(game, filename, useAlpha);
 
-            doLoad();
+            this.game.renderer.submitOperation(&this.doLoad);
         }
 
         void use() @system nothrow {
@@ -69,7 +70,9 @@ version(mango_GLBackend) {
         }
 
         override void cleanup() @system {
-            glDeleteTextures(1, &this.textureId);
+            this.game.renderer.submitOperation(() {
+                glDeleteTextures(1, &this.textureId);
+            });
         }
     }
 }

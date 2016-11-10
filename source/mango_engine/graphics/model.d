@@ -57,6 +57,8 @@ class Model {
     
     @property ShaderProgram shader() @trusted nothrow { return cast(ShaderProgram) _shader; }
 
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
     protected this(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
         this._game = cast(shared) game;
         this.lock = new Lock();

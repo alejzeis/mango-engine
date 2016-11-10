@@ -1,5 +1,6 @@
 module mango_engine.graphics.texture;
 
+import mango_engine.game;
 import mango_engine.util;
 
 /// Interface Class: Represents a Texture (an image)
@@ -9,15 +10,20 @@ abstract class Texture {
     /// If to use alpha when reading.
     immutable bool useAlpha;
 
-    protected uint _width;
-    protected uint _height;
+    private shared GameManager _game;
+
+    protected shared uint _width;
+    protected shared uint _height;
 
     /// The width of the texture in pixels.
     @property uint width() @safe nothrow { return _width; }
     /// The height of the texture in pixels.
     @property uint height() @safe nothrow { return _height; }
 
-    protected this(in string filename, in bool useAlpha = true) @safe nothrow {
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    protected this(GameManager game, in string filename, in bool useAlpha = true) @trusted nothrow {
+        this._game = cast(shared) game;
         this.filename = filename;
         this.useAlpha = useAlpha;
     }
@@ -35,8 +41,8 @@ abstract class Texture {
                             
         Returns: A new loaded Texture instance using the selected backend.
     +/
-    static Texture build(in string filename, in bool useAlpha = true) @safe {
-        mixin(InterfaceClassFactory!("texture", "Texture", "filename, useAlpha"));
+    static Texture build(GameManager game, in string filename, in bool useAlpha = true) @safe {
+        mixin(InterfaceClassFactory!("texture", "Texture", "game, filename, useAlpha"));
     }
 
     /// Cleans up resources used by the Texture.

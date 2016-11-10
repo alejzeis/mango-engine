@@ -90,11 +90,15 @@ version(mango_GLBackend) {
 
         override {
             protected void onShaderAdd() @system {
-                glCompileShader(this.shaderId);
+                this.game.renderer.submitOperation(() {
+                    glCompileShader(this.shaderId);
+                });
             }
 
             protected void cleanup() @system {
-                glDeleteShader(this.shaderId);
+                this.game.renderer.submitOperation(() {
+                    glDeleteShader(this.shaderId);
+                });
             }
         }
     }
