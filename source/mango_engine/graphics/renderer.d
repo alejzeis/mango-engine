@@ -33,6 +33,7 @@ module mango_engine.graphics.renderer;
 
 import mango_engine.mango;
 import mango_engine.util;
+import mango_engine.graphics.scene;
 
 import std.concurrency;
 import std.datetime;
@@ -46,9 +47,13 @@ struct RendererOperationMessage {
 /// Backend interface class: represents a Renderer.
 abstract class Renderer {
     private __gshared Tid threadTid;
+
+    private shared Scene _scene;
+
     private shared bool _running;
 
-    @property bool running() @trusted nothrow { return _running; }
+    @property Scene scene() @trusted nothrow { return cast(Scene) _scene;}
+    @property bool running() @safe nothrow { return _running; }
     
     protected this() @trusted {
         _running = true;

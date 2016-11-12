@@ -46,6 +46,14 @@ version(mango_GLBackend) {
 
         override void render() @system {
             glClear(GL_COLOR_BUFFER_BIT);
+
+            if(this.scene !is null) {
+                synchronized(this.scene) {
+                    foreach(modelName, model; this.scene.models) {
+                        model.render(this);
+                    }
+                }
+            }
             
             glfwPollEvents();
             glfwSwapBuffers(windowId);
