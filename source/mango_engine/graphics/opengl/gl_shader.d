@@ -31,95 +31,123 @@
 */
 module mango_engine.graphics.opengl.gl_shader;
 
-import mango_engine.util;
-import mango_engine.exception;
-import mango_engine.graphics.shader;
-import mango_engine.graphics.opengl.gl_backend;
+version(mango_GLBackend) {
+    import mango_engine.game;
+    import mango_engine.graphics.shader;
 
-import derelict.opengl3.gl3;
+    import blocksound.util : toCString;
 
-/// Converts a ShaderType enum to a GLuint for OpenGL.
-GLuint shaderTypeToGL(in ShaderType type) @safe nothrow {
-    final switch(type) {
-        case ShaderType.SHADER_VERTEX:
-            return GL_VERTEX_SHADER;
-        case ShaderType.SHADER_FRAGMENT:
-            return GL_FRAGMENT_SHADER;
-        case ShaderType.SHADER_COMPUTE:
-            return GL_COMPUTE_SHADER;
-    }
-}
+    import derelict.opengl3.gl3;
 
-class GLShaderProgram : ShaderProgram {
-    private GLuint programId;
-
-    this() @safe {
-        gl_check();
-        
-        setup();
-    }
-    
-    private void setup() @trusted {
-        programId = glCreateProgram();
-    }
-
-    /// Sets the shader for use.
-    void use() @system {
-        glUseProgram(programId);
-    }
-    
-    override {
-        void prepareProgram() @system {
-            glLinkProgram(programId);
-
-            glValidateProgram(programId);
+    /// Gets the OpenGL constant for a specific ShaderType.
+    GLuint shaderTypeToGL(ShaderType type) @safe nothrow {
+        final switch(type) {
+            case ShaderType.SHADER_VERTEX:
+                return GL_VERTEX_SHADER;
+            case ShaderType.SHADER_FRAGMENT:
+                return GL_FRAGMENT_SHADER;
+            case ShaderType.SHADER_COMPUTE:
+                return GL_COMPUTE_SHADER;
         }
-        
-        void addShader_(Shader shader_) @system {
-            GLShader shader = cast(GLShader) shader_;
-            if(!shader) {
-                throw new InvalidArgumentException("Shader must be instance of GLShader!");
+    }
+
+    class GLShaderProgram : ShaderProgram {
+        package GLuint programId;
+
+        this(GameManager game) @safe {
+            super(game);
+
+            game.renderer.submitOperation(&this.setup);
+        }
+
+        private void setup() @trusted nothrow {
+            this.programId = glCreateProgram();
+        }
+
+        void use() @system nothrow {
+            glUseProgram(this.programId);
+        }
+
+        override {
+            void prepareForUse() @trusted {
+                this.game.renderer.submitOperation(() {
+                    glLinkProgram(this.programId);
+
+                    glValidateProgram(this.programId);
+                });
             }
-            glAttachShader(programId, shader.shaderId);
-        }
-        
-        void removeShader_(Shader shader_) @system {
-            GLShader shader = cast(GLShader) shader_;
-            if(!shader) {
-                throw new InvalidArgumentException("Shader must be instance of GLShader!");
+
+            protected void onShaderAdd(Shader shader) @system 
+            in {
+                assert((cast(GLShader) shader) !is null, "Shader instance must be of GLShader!");
+            } body {
+                shared GLShader shader_ = cast(shared GLShader) shader;
+
+                this.game.renderer.submitOperation(() {
+                    debug {
+                        import std.stdio;
+                        writeln("Attaching: ", shader_.shaderId);
+                    }
+                    glAttachShader(this.programId, shader_.shaderId);
+                });
             }
-            glDetachShader(programId, shader.shaderId);
+
+            protected void onShaderRemove(Shader shader) @system
+            in {
+                assert((cast(GLShader) shader) !is null, "Shader instance must be of GLShader!");
+            } body {
+                shared GLShader shader_ = cast(shared GLShader) shader;
+
+                this.game.renderer.submitOperation(() {
+                    glDetachShader(this.programId, shader_.shaderId);
+                });
+            }
         }
     }
-}
 
-class GLShader : Shader {
-    package shared GLuint shaderId;
+    class GLShader : Shader {
+        package immutable string source;
+        package shared GLuint shaderId;
 
-    /// Please use Shader.shaderFactory()
-    this(in string filename, in ShaderType type) @safe {
-        super(filename, type);
+        this(GameManager game, in string source, in ShaderType type) @safe {
+            super(game, source, type);
+            this.source = source;
 
-        gl_check();
-
-        setup();
-    }
-
-    private void setup() @trusted {
-        import blocksound.util : toCString;
-
-        shaderId = glCreateShader(shaderTypeToGL(this.type));
-        char* source = toCString(readFileToString(filename));
-        glShaderSource(shaderId, 1, &source, null);
-    }
-
-    override {
-        protected void onShaderAdd() @system nothrow {
-            glCompileShader(shaderId);
+            game.renderer.submitOperation(&this.setup);
         }
 
-        protected void cleanup() @system nothrow {
-            glDeleteShader(shaderId);
+        private void setup() @system {
+            debug {
+                import std.stdio;
+                writeln("TYPE: ", type, "previous ", this.shaderId);
+            }
+            this.shaderId = glCreateShader(shaderTypeToGL(type));
+
+            debug {
+                import std.stdio;
+                writeln("Set to ", this.shaderId);
+            }
+            
+            char* source = toCString(this.source);
+            glShaderSource(this.shaderId, 1, &source, null);
+        }
+
+        override {
+            protected void onShaderAdd() @system {
+                this.game.renderer.submitOperation(() {
+                    debug {
+                        import std.stdio;
+                        writeln("Compiling Shader! ", this.shaderId);
+                    }
+                    glCompileShader(this.shaderId);
+                });
+            }
+
+            protected void cleanup() @system {
+                this.game.renderer.submitOperation(() {
+                    glDeleteShader(this.shaderId);
+                });
+            }
         }
     }
 }

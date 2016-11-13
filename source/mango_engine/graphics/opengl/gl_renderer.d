@@ -31,50 +31,37 @@
 */
 module mango_engine.graphics.opengl.gl_renderer;
 
-import mango_engine.game;
-import mango_engine.exception;
-import mango_engine.graphics.model;
-import mango_engine.graphics.renderer;
-import mango_engine.graphics.opengl.gl_model;
-import mango_engine.graphics.opengl.gl_backend;
+version(mango_GLBackend) {
+    import mango_engine.graphics.renderer;
 
-import derelict.opengl3.gl3;
+    import derelict.opengl3.gl3;
+    import derelict.glfw3.glfw3;
 
-class GLRenderer : Renderer {
-    // TODO: Remove renderer class?
+    class GLRenderer : Renderer {
+        private GLFWwindow* windowId;
 
-    /// Use Renderer.rendererFactory()
-    this(GameManager game) @safe {
-        super(game);
+        package void registerWindowId(GLFWwindow* window) @trusted {
+            this.windowId = window;
 
-        gl_check();
+            submitOperation(() {
+                glClearColor(0f, 1f, 0f, 0f);
+                glEnable(GL_TEXTURE_2D);
+            });
+        }
 
-        setup();
-    }
-
-    private void setup() @trusted {
-        glClearColor(0f, 100f, 0f, 0f);
-        glEnable(GL_TEXTURE_2D);
-    }
-
-    override {
-        protected void prepareRender() @system {
-            super.prepareRender();
+        override void render() @system {
             glClear(GL_COLOR_BUFFER_BIT);
-        }
 
-        protected void renderModel(shared Model model_) @system {
-            shared GLModel model = cast(shared GLModel) model_;
-            if(model is null) {
-                throw new InvalidArgumentException("Cannot render Model not of type GLModel.");
+            if(this.scene !is null) {
+                synchronized(this.scene) {
+                    foreach(modelName, model; this.scene.models) {
+                        model.render(this);
+                    }
+                }
             }
-
-            (cast(GLModel) model_).render(this);
-        }
-
-        protected void finishRender() @system {
-            super.finishRender();
-            (cast(shared) this.game.window).updateBuffers();
+            
+            glfwPollEvents();
+            glfwSwapBuffers(windowId);
         }
     }
 }

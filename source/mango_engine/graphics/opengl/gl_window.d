@@ -31,116 +31,127 @@
 */
 module mango_engine.graphics.opengl.gl_window;
 
-import mango_engine.graphics.opengl.gl_backend;
-import mango_engine.graphics.window;
-import mango_engine.logging;
-import mango_engine.game;
-import mango_engine.event.core;
-import mango_engine.event.input;
+version(mango_GLBackend) {
+    import mango_engine.graphics.window;
+    import mango_engine.mango;
+    import mango_engine.event.core;
+    import mango_engine.event.graphics;
+    import mango_engine.graphics.renderer;
+    import mango_engine.graphics.opengl.gl_backend;
+    import mango_engine.graphics.opengl.gl_renderer;
 
-import blocksound.util : toCString, toDString;
+    import blocksound.util : toCString, toDString; // TODO: move to mango_stl
+    import mango_stl.collections;
 
-import derelict.glfw3;
-import derelict.opengl3.gl3 : glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
+    import derelict.glfw3.glfw3;
+    import derelict.opengl3.gl3 : glViewport, glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
-import std.conv;
+    import std.conv;
 
-package __gshared GLWindow[GLFWwindow*] windows;
-
-extern(C) void glwindow_glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
-    windows[window].onKey(key, scancode);
-}
-
-class GLWindow : Window {
-    private GLFWwindow* window;
-    private shared size_t keyEventCounter;
-    private shared KeyPressEvent[size_t] keyEvents;
-
-    this(in string title, in uint width, in uint height, SyncType syncType) @safe {
-        super(title, width, height, syncType);
-        gl_check();
-
-        createWindow();
+    private struct KeyEvent {
+        GLFWwindow* window;
+        int key;
+        int scancode;
+        int action;
+        int mods;
     }
 
-    private void createWindow() @trusted {
-        // Set OpenGL Information
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MANGO_GL_VERSION_MAJOR);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, MANGO_GL_VERSION_MINOR);
+    private __gshared UnsafeQueue!KeyEvent keyEventQueue;
 
-        window = glfwCreateWindow(width, height, toCString(title), null, null);
-        if(!window) {
-            if(failedContext) { // From gl_backend
-                throw new WindowContextFailedException("Context Failed! Does the host machine support OpenGL " ~ MANGO_GL_VERSION_STRING ~ "?");
-            } else 
-                throw new Exception("Failed to create window!");
-        }
-
-        glfwMakeContextCurrent(window); // Set our main OpenGL context
-
-        GLBackend.loadCoreMethods(); // Load the non-deprecated methods (core)
-
-        string glVersion = toDString(glGetString(GL_VERSION));
-        // backendLogger: from gl_backend.d
-        (cast(Logger) backendLogger).logInfo("GL_VERSION: " ~ glVersion);
-        (cast(Logger) backendLogger).logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
-        (cast(Logger) backendLogger).logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
-
-        glfwSetKeyCallback(window, &glwindow_glfwKeyCallback);
-    }
-
-    package void onKey(int key, int scancode) @system nothrow {
-        import core.atomic;
-        keyEvents[atomicOp!"+="(keyEventCounter, 1)] = cast(shared) new KeyPressEvent(key, scancode);
-    }
-
-    private void evtHook_processInput(Event e) @system {
-        glfwPollEvents();
-
-        size_t[] toRemove;
-        foreach(key, event; keyEvents) {
-            game.eventManager.fireEvent(cast(KeyPressEvent) event);
-        }
-
-        foreach(t; toRemove)
-            keyEvents.remove(t);
-
-        if(glfwWindowShouldClose(window)) {
-            game.stop();
-        }
+    extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
+        glViewport(0, 0, width, height); // Tell OpenGL the window was resized
     }
     
-    override {
-        protected void setGame_() @system {
-            game.eventManager.registerEventHook(TickEvent.classinfo.name,
-                EventHook(&this.evtHook_processInput, false)
-            );
+    extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
+        keyEventQueue.add(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
+    }
+
+    class GLWindow : Window {
+        __gshared {
+            private GLFWwindow* window;
         }
 
-        shared void updateBuffers() @system {
-            glfwSwapBuffers(cast(GLFWwindow*) window);
+        this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted {
+            super(renderer, title, width, height, syncType);
+
+            if(keyEventQueue is null) {
+                keyEventQueue = new UnsafeQueue!KeyEvent();
+            } else keyEventQueue.clear();
+
+            renderer.submitOperation(&this.setupWindow);
         }
 
-        protected void setSync_(in SyncType syncType) @system {
-            final switch(syncType) {
-                case SyncType.SYNC_NONE:
-                    glfwSwapInterval(0);
-                    break;
-                case SyncType.SYNC_VSYNC:
-                    glfwSwapInterval(1);
-                    break;
-                case SyncType.SYNC_ADAPTIVE:
-                    throw new Exception("Adaptive Sync not implemented!");
+        private void setupWindow() @trusted 
+        in {
+            assert((cast(GLRenderer) this.renderer) !is null, "renderer not instanceof GLRenderer!");
+        } body {
+            glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, MANGO_GL_VERSION_MAJOR);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, MANGO_GL_VERSION_MINOR);
+
+            this.window = glfwCreateWindow(this.width, this.height, toCString(this.title), null, null);
+            if(!window) {
+                throw new Exception("Failed to create window! Does the host machine support OpenGL " ~ MANGO_GL_VERSION ~ "?");
             }
+
+            glfwMakeContextCurrent(this.window);
+
+            glbackend_loadCoreMethods();
+
+            glfwSetWindowSizeCallback(this.window, &glfw_windowSizeCallback);
+            glfwSetKeyCallback(this.window, &glfw_keyEventCallback);
+
+            string glVersion = toDString(glGetString(GL_VERSION));
+        
+            GLOBAL_LOGGER.logInfo("GL_VERSION: " ~ glVersion);
+            GLOBAL_LOGGER.logInfo("GL_RENDERER: " ~ toDString(glGetString(GL_RENDERER)));
+            GLOBAL_LOGGER.logInfo("GL_VENDOR: " ~ toDString(glGetString(GL_VENDOR)));
+
+            (cast(GLRenderer) this.renderer).registerWindowId(this.window);
         }
 
-        protected void setTitle_(in string title) @system {
-            glfwSetWindowTitle(window, toCString(title));
-        }
+        override {
+            protected void setTitle_(in string title) @system {
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window title changed to " ~ title);
+                    glfwSetWindowTitle(this.window, toCString(title));
+                });
+            }
 
-        protected void resize_(in uint width, in uint height) @system {
-            glfwSetWindowSize(window, width, height);
+            protected void setVisible_(in bool visible) @system {
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window set visible: " ~ to!string(visible));
+                    if(visible) {
+                        glfwShowWindow(this.window);
+                    } else {
+                        glfwHideWindow(this.window);
+                    }
+                });
+            }
+
+            protected void resize_(in uint width, in uint height) @system {
+                this.renderer.submitOperation(() {
+                    this.game.logger.logDebug("Window manually resized to " ~ to!string(width) ~ "x" ~ to!string(height));
+                    glfwSetWindowSize(this.window, width, height);
+                });
+            }
+
+            protected void onGamemanager_notify() @system {
+                this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
+                    if(!keyEventQueue.isEmpty()) {
+                        KeyEvent keyEvent = keyEventQueue.pop();
+                        this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
+                    }
+                }, false)); // TODO: get to work on it's own thread?
+
+                this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
+                    if(this.window is null) return;
+                    
+                    if(glfwWindowShouldClose(this.window)) {
+                        this.game.stop();
+                    }
+                }));
+            }
         }
     }
 }

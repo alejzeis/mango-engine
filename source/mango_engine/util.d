@@ -31,12 +31,58 @@
 */
 module mango_engine.util;
 
+import mango_stl.collections;
+import mango_stl.misc : Lock;
+
 import std.concurrency;
+import std.conv;
 import core.atomic;
 
-/// Dummy class used for locks.
-class SyncLock {
+alias SyncLock = Lock;
 
+template InterfaceClassFactory(string type, string clazz, string params) {
+    const char[] InterfaceClassFactory = "
+    import mango_engine.mango : BackendType, currentBackendType;
+
+    final switch(currentBackendType) {
+        case BackendType.BACKEND_OPENGL:
+            version(mango_GLBackend) {
+                import mango_engine.graphics.opengl.gl_" ~ type ~ ";
+
+                return new GL" ~ clazz ~ "(" ~ params ~ ");
+            } else {
+                throw new Exception(\"No backend has been compiled in!\");
+            }
+        case BackendType.BACKEND_VULKAN:
+            throw new Exception(\"No support for vulkan yet!\");
+    }
+    ";
+}
+
+template LoadLibraryTemplate(string libName, string suffix, string winName) {
+    const char[] LoadLibraryTemplate = "
+    version(Windows) {
+        try {
+            Derelict" ~ suffix ~ ".load();
+            logger.logDebug(\"Loaded " ~ libName ~ "\");
+        } catch(Exception e) {
+            logger.logDebug(\"Failed to load library " ~ libName ~ ", searching in provided libs\");
+            try {
+                Derelict" ~ suffix ~ ".load(\"lib/" ~ winName ~ ".dll\");
+                logger.logDebug(\"Loaded " ~ libName ~ "\");
+            } catch(Exception e) {
+                throw new Exception(\"Failed to load library " ~ libName ~ ":\" ~ e.classinfo.name);
+            }
+        }
+    } else {
+        try {
+            Derelict" ~ suffix ~ ".load();
+            logger.logDebug(\"Loaded " ~ libName ~ "\");
+        } catch(Exception e) {
+            throw new Exception(\"Failed to load library " ~ libName ~ ":\" ~ e.classinfo.name);
+        }
+    }
+    ";
 }
 
 /// Utility class to manage a group of threads.
@@ -76,16 +122,19 @@ class ThreadPool {
         lock2 = new SyncLock();
     }
 
-    void submitWork(WorkDelegate work) @trusted {
+    void submitWork(WorkDelegate work, string debugTest = "none") @trusted {
         if(doStop)
             return;
 
+        debug(mango_concurrencyInfo) {
+            import std.stdio;
+            writeln("Submitting to workers: ", debugTest);
+        }
         synchronized(workerLock) {
             foreach(id, ref worker; this.workers) {
                 // Prioritize sending work to free workers
                 if(!worker.busy) {
                     send(worker.tid, Work(work));
-                    worker.busy = true;
                     return;
                 }
             }
@@ -114,7 +163,7 @@ class ThreadPool {
         synchronized(workerLock) {
             doStop = true;
             foreach(id, worker; this.workers) {
-                send(worker.tid, "stop");
+                prioritySend(worker.tid, "stop");
             }
         }
     }
@@ -129,13 +178,16 @@ package shared struct Work {
 class ThreadWorker {
     immutable size_t id;
 
-    private shared(ThreadPool) pool;
+    private shared ThreadPool pool;
 
     private bool running = true;
+
+    private Queue!Work workQueue;
 
     this(in size_t id, shared(ThreadPool) pool) @safe nothrow {
         this.id = id;
         this.pool = pool;
+        this.workQueue = new Queue!Work();
     }
 
     void doRun() @trusted {
@@ -143,26 +195,24 @@ class ThreadWorker {
         import core.thread;
 
         do {
-            bool recieved = receiveTimeout(1000.msecs,
+            bool recieved = receiveTimeout(0.msecs,
                 (string s) {
                     if(s == "stop") {
                         running = false;
                     }
                 },
                 (Work work) {
-                    pool.notifyBusy(id, true);
-                    debug(mango_concurrencyInfo) {
-                        import std.stdio;
-                        writeln("Executing work in thread, ", id);
-                    }
-                    work.work();
-                    pool.notifyBusy(id, false);
-                    debug(mango_concurrencyInfo) {
-                        import std.stdio;
-                        writeln("Executing work complete in thread, ", id);
-                    }
+                    this.workQueue.add(work);
                 }
             );
+            if(this.workQueue.isEmpty()) continue;
+
+            Work work = this.workQueue.pop();
+            work.work();
+
+            if(this.workQueue.isEmpty()) {
+                this.pool.notifyBusy(this.id, false);
+            } else this.pool.notifyBusy(this.id, true);
         } while(running);
 
         debug(mango_concurrencyInfo) {
@@ -173,8 +223,42 @@ class ThreadWorker {
 }
 
 private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
+    import core.thread : Thread;
+    import mango_engine.mango : GLOBAL_LOGGER;
+    
+    Thread.getThis().name = "WorkerThread-" ~ to!string(id);
+
+    GLOBAL_LOGGER.logDebug("Starting worker #" ~ to!string(id));
+
     ThreadWorker worker = new ThreadWorker(id, pool);
     worker.doRun();
+}
+
+string getTimestamp() @safe {
+    import std.datetime : SysTime, Clock;
+    import std.conv : to;
+
+    SysTime c = Clock.currTime();
+    return to!string(c.day) ~ "-" ~ to!string(c.month)
+     ~ "-" ~ to!string(c.year) ~ "_" ~ to!string(c.hour) ~ ":" ~ to!string(c.minute)
+     ~ ":" ~ to!string(c.second);
+}
+
+string getOSString() @safe nothrow {
+    import std.system : os, OS;
+
+    switch(os) {
+        case OS.win32:
+            return "Windows (32-bit)";
+        case OS.win64:
+            return "Windows (64-bit)";
+        case OS.osx:
+            return "OSX";
+        case OS.linux:
+            return "Linux";
+        default:
+            return "Other";
+    }
 }
 
 /++

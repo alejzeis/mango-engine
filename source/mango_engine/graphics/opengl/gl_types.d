@@ -31,8 +31,7 @@
 */
 module mango_engine.graphics.opengl.gl_types;
 
-import mango_engine.graphics.model : Vertex, TexturedVertex;
-import mango_engine.graphics.opengl.gl_backend : gl_check;
+import mango_engine.graphics.model;
 
 import derelict.opengl3.gl3;
 
@@ -60,8 +59,7 @@ float[] positionVerticesToFloats(Vertex[] vertices) @safe {
 float[] textureVerticesToFloats(Vertex[] vertices) @trusted {
     float[] data;
     if(!(cast(TexturedVertex[]) vertices)) {
-        import mango_engine.exception : InvalidArgumentException;
-        throw new InvalidArgumentException("Vertices not type of TexturedVertex!");
+        throw new Exception("Vertices not type of TexturedVertex!");
     }
     foreach(vertex; (cast(TexturedVertex[]) vertices)) {
         data ~= vertex.texture.x;
@@ -75,21 +73,18 @@ class VAO {
     private GLuint _vao;
 
     /// GLuint id for the VAO.
-    @property GLuint vao() @safe nothrow { return _vao; }
+    @property GLuint vao() @trusted nothrow { return _vao; }
 
-    private this(GLuint vao) @safe nothrow {
+    private this(GLuint vao) @trusted nothrow {
         _vao = vao;
     }
 
     /++
         Generate a new VAO.
         (glGenVertexArrays)
-
         Returns: A new, empty VAO.
     +/
     static VAO generateNew() @trusted {
-        gl_check();
-        
         GLuint id;
         glGenVertexArrays(1, &id);
 
@@ -121,21 +116,18 @@ class VBO {
     private GLuint _vbo;
 
     /// The VBO's GLuint id.
-    @property GLuint vbo() @safe nothrow { return _vbo; }
+    @property GLuint vbo() @trusted nothrow { return _vbo; }
     /// The VBO Type, ex. GL_ARRAY_BUFFER.
-    @property GLenum type() @safe nothrow { return _type; }
+    @property GLenum type() @trusted nothrow { return _type; }
 
     /++
         Create a new VBO with the specified type.
         (glGenBuffers)
-
         Params:
                 type =  The type (or target) of the buffer,
                         ex. GL_ARRAY_BUFFER.
     +/
     this(GLenum type) @trusted {
-        gl_check();
-        
         _type = type;
 
         glGenBuffers(1, &_vbo);
@@ -148,7 +140,6 @@ class VBO {
 
     /++
         Sets the data of the buffer (raw).
-
         Params:
                 data   =    The data to be placed in the buffer.
                 length =    The length in bytes of the data.
@@ -164,7 +155,6 @@ class VBO {
     /++
         Set the data of the buffer.
         Uses glBufferData.
-
         Params:
                 data =      The Data to be placed in the buffer.
                 usage =     See OpenGL docs on usage parameter in
@@ -179,7 +169,6 @@ class VBO {
     /++
         Set the data of the buffer.
         Uses glBufferData.
-
         Params:
                 data =      The Data to be placed in the buffer.
                 usage =     See OpenGL docs on usage parameter in

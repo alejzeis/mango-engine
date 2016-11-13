@@ -31,9 +31,10 @@
 */
 module mango_engine.graphics.window;
 
-import mango_engine.mango;
+import mango_engine.util;
 import mango_engine.game;
-import mango_engine.graphics.backend;
+import mango_engine.event.graphics;
+import mango_engine.graphics.renderer;
 
 /// Represents different screen sync types
 enum SyncType {
@@ -52,22 +53,27 @@ class WindowContextFailedException : Exception {
     }   
 }
 
-/++
-    Represents a surface that the backend
-    renders on.
-+/
+/// Backend interface class: represents a window.
 abstract class Window {
+    immutable SyncType syncType;
+
     private shared GameManager _game;
+    private shared Renderer _renderer;
+
     private shared string _title;
     private shared uint _width;
     private shared uint _height;
-    private SyncType _syncType;
+    private shared bool _visible = false;
+
+    @property protected GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+    @property protected Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
 
     /// The title of the Window.
     @property string title() @safe nothrow { return _title; }
     /// The title of the Window.
     @property void title(in string title) @trusted {
-        _title = title;
+        _title = title; // TODO: concurrency fixes!
+        game.eventManager.fireEvent(new WindowTitleChangeEvent(title, this));
         setTitle_(title);
     }
 
@@ -75,55 +81,46 @@ abstract class Window {
     @property uint width() @safe nothrow { return _width; }
     /// The height of the window in pixels.
     @property uint height() @safe nothrow { return _height; }
-    /// The type of synchronization the window is using.
-    @property SyncType syncType() @safe nothrow { return _syncType; }
+    /// If the window is currently being displayed.
+    @property bool visible() @safe nothrow { return _visible; }
+    /// Show or hide the window.
+    @property void visible(bool visible) @trusted {
+        _visible = visible;
+        game.eventManager.fireEvent(visible ? new WindowShowEvent(this) : new WindowShowEvent(this));
+        setVisible_(visible);
+    }
 
-    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+    protected this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted nothrow {
+        this._renderer = cast(shared) renderer;
+        this.syncType = syncType;
 
-    protected this(in string title, in uint width, in uint height, SyncType syncType) @safe nothrow {
         this._title = title;
         this._width = width;
         this._height = height;
-        this._syncType = syncType;
+    }
+
+    static Window build(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
+        mixin(InterfaceClassFactory!("window", "Window", "renderer, title, width, height, syncType"));
     }
 
     /++
-        Create a new window based on the GraphicsBackendType.
-        If the backend has not been compiled into mango-engine,
-        an exception will be thrown.
+        FOR INTERNAL USE!!!
 
-        Params:
-                title =     The title of the Window.
-                width =     The width of the window (in pixels)
-                height =    The height of the window (in pixels)
-                syncType =  The SyncType used by the window.
-                backend =   The Backend to use for rendering. This needs
-                            to be consistent across your application,
-                            or else there will be strange bugs.
-                            
-        Throws: Exception if no backends are avaliable.
+        Because a Window instance is created before a 
+        GameManager instance exists, the GameManager needs
+        to notify the Window class that it has been created,
+        and pass an instance of itself to the window.
     +/
-    static Window windowFactory(in string title, in uint width, in uint height, SyncType syncType, GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_window;
-        
-        mixin(GenFactory!("Window", "title, width, height, syncType"));
-    }
-
-    final void resize(in uint width, in uint height) @trusted {
-        _width = width;
-        _height = height;
-        resize_(width, height);
-    }
-
-    /// Used ONLY by GameManager. DO NOT CALL!
-    final void setGame(GameManager game) @trusted {
+    void gamemanager_notify(GameManager game) @trusted 
+    in {
+        assert(_game is null, "Tried to set GameManager when it was already set.");
+    } body {
         this._game = cast(shared) game;
-        setGame_();
+        onGamemanager_notify();
     }
 
-    shared abstract void updateBuffers() @system;
-    protected abstract void setGame_() @system;
-    protected abstract void setSync_(in SyncType syncType) @system;
+    protected abstract void onGamemanager_notify() @system;
     protected abstract void setTitle_(in string title) @system;
+    protected abstract void setVisible_(in bool visible) @system;
     protected abstract void resize_(in uint width, in uint height) @system;
 }

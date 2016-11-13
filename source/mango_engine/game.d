@@ -32,135 +32,205 @@
 module mango_engine.game;
 
 import mango_engine.mango;
-import mango_engine.exception;
-import mango_engine.util;
-import mango_engine.audio;
 import mango_engine.logging;
 import mango_engine.event.core;
 import mango_engine.graphics.window;
 import mango_engine.graphics.renderer;
-import mango_engine.graphics.scene;
 
-import std.exception : enforce;
+import std.exception;
 import std.datetime;
 
+import core.thread;
+
+/// Used to create a GameManager instance. DO NOT SHARE ACROSS THREADS.
+class GameManagerFactory {
+    /// The Backend that will be used by the GameManager
+    immutable BackendType backendType;
+
+    private Window window;
+    private Renderer renderer;
+
+    /++
+        Internal Constructor used by the Backend's Initializer
+        class.
+    +/
+    this(BackendType type) @safe nothrow {
+        this.backendType = backendType;
+    }
+
+    /++
+        Sets the Window that this GameManager will render
+        to.
+
+        Params:
+                window =    The Window which will be rendered to.
+    +/
+    void setWindow(Window window) @safe nothrow {
+        this.window = window;
+    }
+
+    /++
+        Sets the Renderer that this GameManager will
+        use to render scenes. This is already set by
+        the Backend's Initalizer, there is no need
+        to reset it.
+
+        Params:
+                renderer =  The Renderer which will render
+                            scenes for the GameManager.
+    +/
+    void setRenderer(Renderer renderer) @safe nothrow {
+        this.renderer = renderer;
+    }
+
+    /++
+        Gets the Window the GameManager will use
+        for rendering. If it was not set, will return
+        null.
+
+        Returns: The Window the GameManager will use for
+                 rendering.
+    +/
+    Window getWindow() @safe nothrow { 
+        return window;
+    }
+
+    /++
+        Gets the Renderer the GameManager will
+        use to render.
+
+        Returns: The Renderer the GameMAnager will
+                 use to render scenes.
+    +/
+    Renderer getRenderer() @safe nothrow {
+        return renderer;
+    }
+
+    /++
+        Build the GameManager using all the values
+        set by the set_ methods. 
+        
+        Make sure you have set all values before building, 
+        this is checked in debug mode using assert()
+        but in release you could end up with a nasty suprise!
+
+        Returns: A new GameManager instance.
+    +/
+    GameManager build() @safe 
+    in {
+        assert(window !is null, "Window is null: please set all values before building!");
+        assert(renderer !is null, "Renderer is null: please set all values before building!");
+    } body {
+        return new GameManager(
+            new ConsoleLogger("Game"),
+            window,
+            renderer,
+            backendType
+        );
+    }
+}
+
+/// Main class that handles the Game.
 class GameManager {
+    /// The Backend the GameManager is using for graphics output.
+    immutable BackendType backendType;
+
     private shared Window _window;
     private shared Renderer _renderer;
-    private shared Scene _scene;
-
-    private shared SyncLock loadedScenesLock;
-    private shared SyncLock sceneLock;
-
-    private shared Scene[string] loadedScenes;
-
+    
     private shared EventManager _eventManager;
-    private shared AudioManager _audioManager;
     private shared Logger _logger;
 
+    /// Returns: The Window this GameManager is rendering to.
     @property Window window() @trusted nothrow { return cast(Window) _window; }
+    /// Returns: The Renderer this GameManager is using to render.
     @property Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
-    @property Scene scene() @trusted nothrow { return cast(Scene) _scene; }
-
-
+    /// Returns: The EventManager this GameManager is using to handle events.
     @property EventManager eventManager() @trusted nothrow { return cast(EventManager) _eventManager; }
-    @property AudioManager audioManager() @trusted nothrow { return cast(AudioManager) _audioManager; }
+    /// Returns: The Logger this GameManager is using for Logging.
     @property Logger logger() @trusted nothrow { return cast(Logger) _logger; }
 
     private shared bool running = false;
 
-    this(Window window, GraphicsBackendType backend) @trusted {
+    /// Internal constructor used by GameManagerFactory
+    package this(Logger logger, Window window, Renderer renderer, BackendType type) @trusted {
+        this.backendType = type;
+
+		this._logger = cast(shared) logger;
+        this._renderer = cast(shared) renderer;
         this._window = cast(shared) window;
-        initLogger();
-
+        
         this._eventManager = cast(shared) new EventManager(this);
-        this._audioManager = cast(shared) new AudioManager(this);
-        if(window !is null) 
-            this._renderer = cast(shared) Renderer.rendererFactory(this, backend);
 
-        loadedScenesLock = new SyncLock();
-        sceneLock = new SyncLock();
-
-        window.setGame(this);
-    }
-    
-    private void initLogger() @trusted {
-        // TODO: make changable
-        this._logger = cast(shared) new ConsoleLogger("Game");
+        window.gamemanager_notify(this); // Tell Window that we have been created
     }
 
-    void run() @system {
-        import core.thread : Thread;
+    /++
+        Main run method. This will block
+        until the Game has finished running.
+    +/
+    void run() @trusted {
+        enforce(!this.running, new Exception("Game is already running!"));
 
-        enforce(!running, new Exception("Game is already running!"));
-
-        running = true;
+        this.running = true;
 
         ulong ticks = 0;
 
-        size_t fps = 300; // TODO: allow configuration
+        size_t fps = 144; // TODO: allow configuration
         long time = 1000 / fps;
         StopWatch sw = StopWatch();
 
-        logger.logDebug("Starting main loop...");
+        this.eventManager.fireEvent(new GameManagerStartEvent());
 
-        while(running) {
-            sw.reset();
+        this.logger.logDebug("Entering main loop.");
+
+        do {
+			sw.reset();
             sw.start();
 
             TickEvent te = new TickEvent(ticks);
 
-            eventManager.fireEvent(te);
-            eventManager.update();
+            this.eventManager.fireEvent(te);
+            this.eventManager.update();
+
+            if(!renderer.running) {
+                this.logger.logError("It appears the renderer thread has crashed! Exiting...");
+                this.running = false;
+                break;
+            }
 
             sw.stop();
             if(sw.peek.msecs < time) {
                 Thread.sleep((time - sw.peek.msecs).msecs);
             } else {
                 version(mango_warnOvertime) {
-                    logger.logWarn("Can't keep up! (" ~ to!string(sw.peek.msecs) ~ " > " ~ to!string(time) ~ ")");
+                    this.logger.logWarn("Can't keep up! (" ~ to!string(sw.peek.msecs) ~ " > " ~ to!string(time) ~ ")");
                 }
             }
             ticks++;
-        }
+        } while(this.running);
+        
+        this.logger.logDebug("Cleaning up...");
 
-        logger.logDebug("Cleaning up...");
-
-        eventManager.fireEvent(new EngineCleanupEvent());
-        eventManager.update();
-    }
-    
-    void stop() @safe {
-        synchronized(this) {
-            running = false;
+        if(this.renderer.running) {
+            this.renderer.stop();
         }
+        
+        this.eventManager.fireEvent(new EngineCleanupEvent());
+        this.eventManager.update(0);
     }
 
-    void loadScene(Scene scene) @trusted {
-        string sceneName = scene.name;
-        enforce(!(sceneName in loadedScenes), new InvalidArgumentException("Scene \"" ~ sceneName ~ "\" is already loaded!"));
-
-        synchronized(loadedScenesLock) {
-            loadedScenes[sceneName] = cast(shared) scene;
-        }
+    /++
+        Tell the GameManager to stop running and quit.
+        The GameManager will then cleanup resources and exit
+        the run() method.
+    +/
+    void stop() @safe nothrow {
+        this.running = false;
     }
 
-    void unloadScene(Scene scene) @trusted {
-        string sceneName = scene.name;
-        enforce(sceneName in loadedScenes, new InvalidArgumentException("Scene \"" ~ sceneName ~ "\" is not loaded!"));
-        enforce(this._scene.name != sceneName, new InvalidArgumentException("Can't unload the current scene being rendered!"));
-
-        synchronized(loadedScenesLock) {
-            loadedScenes.remove(sceneName);
-        }
-    }
-
-    void setCurrentScene(Scene scene) @trusted {
-        enforce(scene.name in loadedScenes, new InvalidArgumentException("Scene is not loaded!"));
-
-        synchronized(sceneLock) {
-            _scene = cast(shared) scene;
-            renderer.setScene(scene);
-        }
+    /// Returns: If the GameManager is currently running.
+    bool isRunning() @safe nothrow {
+        return this.running;
     }
 }

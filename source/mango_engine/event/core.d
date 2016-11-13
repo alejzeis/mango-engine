@@ -32,8 +32,9 @@
 module mango_engine.event.core;
 
 import mango_engine.game;
-import mango_engine.exception;
 import mango_engine.util;
+
+import mango_stl.collections;
 
 import std.conv;
 
@@ -44,6 +45,7 @@ abstract class Event {
 
 /// Event that is fired each tick.
 class TickEvent : Event {
+    /// The current tick the GameManager is on.
     immutable ulong currentTick;
 
     this(in ulong currentTick) @safe nothrow pure {
@@ -51,13 +53,20 @@ class TickEvent : Event {
     }
 }
 
+/// Event that is fired when the GameManager.run() method is called.
+class GameManagerStartEvent : Event {
+
+}
+
 /// Event that is fired when the engine begins to clean up.
 class EngineCleanupEvent : Event {
 
 }
 
-alias HookDelegate = void delegate(Event e) @system;
+/// Alias for a delegate used for an event hook.
+alias HookDelegate = void delegate(Event evt) @system;
 
+/// Represents a hook that is called for a specific event.
 struct EventHook {
     /// The function delegate to be ran.
     immutable HookDelegate hook;
@@ -65,78 +74,95 @@ struct EventHook {
     immutable bool runAsync = true;
 }
 
+/// Handles all Event related activities.
 class EventManager {
-    private ThreadPool pool;
-    private GameManager game;
-
-    private shared SyncLock hookLock;
-    private shared EventHook[][string] hooks;
-
-    private shared SyncLock evtQueueLock;
-    private shared size_t evtQueueCounter = 0;
-    private shared Event[size_t] evtQueue;
-
-    this(GameManager game) @safe {
-        import core.cpuid;
-        this.game = game;
-        game.logger.logInfo("This CPU has " ~ to!string(coresPerCPU()) ~ " cores avaliable. Assigning one worker thread to each.");
-        this.pool = new ThreadPool(coresPerCPU()); 
-
-        this.evtQueueLock = new shared SyncLock();
-        this.hookLock = new shared SyncLock();
-
-        registerEventHook(EngineCleanupEvent.classinfo.name,
-            EventHook(&this.stop, false) 
-        );
-    }
-
-    private void stop(Event e) @trusted {
-        pool.stopImmediate();
+	__gshared {
+		private ThreadPool pool;
+		private GameManager game;
+		
+		private Queue!Event eventQueue;
+	}
+	
+	private shared SyncLock hookLock;
+	private shared EventHook[][string] hooks;
+	
+	this(GameManager game) @trusted {
+		import core.cpuid : coresPerCPU;
+		
+		this.game = game;
+		this.game.logger.logInfo("This CPU has " ~ to!string(coresPerCPU()) ~ " cores avaliable. Assigning one worker thread to each.");
+		this.pool = new ThreadPool(coresPerCPU());
+		this.eventQueue = new Queue!Event();
+		
+		this.hookLock = new SyncLock();
+		
+		this.registerEventHook(EngineCleanupEvent.classinfo.name, EventHook(&this.stop, false));
+	}
+	
+	
+	private void stop(Event evt) @trusted {
+        this.pool.stopImmediate();
     }
 
     /++
         Adds an event to the firing queue. The event
         will be fired on the next EventManager update
         pass.
+
+        Params:
+                event =  The Event to be fired.    
     +/
     void fireEvent(Event event) @trusted {
-        import core.atomic : atomicOp;
-        synchronized(this.evtQueueLock) {
-            this.evtQueue[atomicOp!"+="(this.evtQueueCounter, 1)] = cast(shared) event;
+        this.eventQueue.add(event); // Queue is thread-safe
+        debug {
+            //this.eventQueue.debugDump();
         }
     }
 
+    /++
+        Registers an EventHook for a specific Event.
+        This hook will be called when the event is fired.
+
+        Params:
+                eventType =     The event's full class name.
+                                This is given by [EventClass].classinfo.name
+
+                hook =          The EventHook to be called when
+                                the Event is fired. 
+    +/
     void registerEventHook(in string eventType, EventHook hook) @trusted {
         synchronized(this.hookLock) {
-            hooks[eventType] ~= cast(shared) hook;
+            this.hooks[eventType] ~= cast(shared) hook;
         }
     }
 
     /// Update function called by GameManager
-    void update() @trusted {
-        synchronized(this.evtQueueLock) {
-            if(this.evtQueue.length < 1) return; // If the queue is empty, return
-
-            size_t[] toRemove;
-            foreach(size_t key, shared(Event) event; this.evtQueue) {
-                if(event.classinfo.name in hooks) { // Check if there is a hook(s) for the event type
-                    foreach(EventHook hook; hooks[event.classinfo.name]) {
+    void update(size_t limit = 25) @trusted {
+    	if(this.eventQueue.isEmpty()) return;
+    	
+    	if(limit == 0) {
+    		limit = size_t.max;
+    	}
+        
+    	while(!this.eventQueue.isEmpty() && (limit-- > 0)) {
+    		Event event = this.eventQueue.pop();
+            synchronized(this.hookLock) {
+                if(event.classinfo.name in this.hooks) {
+                    foreach(EventHook hook; this.hooks[event.classinfo.name]) {
                         if(hook.runAsync) { // Check if we can run this in a worker
                             pool.submitWork(() {
+                                debug {
+                                    import std.stdio;
+                                    //writeln("Executing: ", event.classinfo.name);
+                                }
                                 hook.hook(cast(Event) event);
-                            });
+                            }, event.classinfo.name);
                         } else {
                             hook.hook(cast(Event) event);
                         }
                     }
-                } else {
                 }
-                toRemove ~= key; // Add the event's key to the remove list.
             }
-
-            foreach(size_t key; toRemove) { // Remove all the processed events
-                this.evtQueue.remove(key);
-            }
-        }
+    	}
     }
 }

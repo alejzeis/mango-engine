@@ -31,14 +31,13 @@
 */
 module mango_engine.graphics.model;
 
-import mango_engine.mango;
-import mango_engine.util;
 import mango_engine.game;
-import mango_engine.event.graphics;
-import mango_engine.graphics.backend;
+import mango_engine.util;
 import mango_engine.graphics.renderer;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
+
+import mango_stl.misc;
 
 import gl3n.linalg;
 
@@ -47,8 +46,8 @@ class Vertex {
     /// Vector containing the Vertex's coordinates (3D).
     vec3 position;
 
-    this(vec3 position) @safe nothrow {
-        this.position = position;
+    this(vec3 position) @trusted nothrow {
+        position = cast(shared) position;
     }
 }
 
@@ -61,15 +60,18 @@ class TexturedVertex : Vertex {
     /// Vector containing the texture coordinates.
     vec2 texture;
 
-    this(vec3 position, vec2 texture) @safe nothrow {
+    this(vec3 position, vec2 texture) @trusted nothrow {
         super(position);
         this.texture = texture;
     }
 }
 
-abstract class Model {
-    private GameManager game;
-    private SyncLock lock;
+/// Represents a Model which can be rendered. A Model has a Shader and a Texture
+class Model {
+    immutable string name;
+
+    private shared GameManager _game;
+    private shared Lock lock;
 
     protected shared Vertex[] vertices;
     protected shared uint[] _indices;
@@ -86,11 +88,14 @@ abstract class Model {
         }
     }
     
-    @property ShaderProgram shader() @trusted  nothrow { return cast(ShaderProgram) _shader; }
+    @property ShaderProgram shader() @trusted nothrow { return cast(ShaderProgram) _shader; }
 
-    protected this(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
-        this.game = game;
-        this.lock = new SyncLock();
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    protected this(in string name, GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
+        this.name = name;
+        this._game = cast(shared) game;
+        this.lock = new Lock();
 
         this.vertices = cast(shared) vertices;
         this._indices = cast(shared) indices;
@@ -99,18 +104,17 @@ abstract class Model {
         this._shader = cast(shared) shader;
     }
 
-    static Model modelFactory(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_model : GLModel;
-
-        mixin(GenFactory!("Model", "game, vertices, indices, texture, shader"));
+    static Model build(in string name, GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @safe {
+        mixin(InterfaceClassFactory!("model", "Model", "name, game, vertices, indices, texture, shader"));
     }
 
     void render(Renderer renderer) @system {
-        game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
+        //game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
         synchronized(lock) {
             render_(renderer);
         }
     }
+    
     abstract void cleanup() @system;
     
     abstract protected void render_(Renderer renderer) @system;
