@@ -122,14 +122,37 @@ class Model {
         mixin(InterfaceClassFactory!("model", "Model", "name, game, vertices, indices, texture, shader"));
     }
 
-    void render(Renderer renderer) @system {
+    final void render(Renderer renderer) @system {
         //game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
-        synchronized(lock) {
+        synchronized(this.lock) {
             render_(renderer);
         }
+    }
+
+    final void replaceVertices(Vertex[] vertices) @trusted {
+        synchronized(this.lock) {
+            this.vertices = cast(shared) vertices;
+            replaceVertices_();
+        }
+    }
+
+    final void replaceVertex(size_t arrayPosition, Vertex vertex) @trusted 
+    in {
+        assert(arrayPosition < this.vertices.length, "Invalid arrayPosition (greater than array size!)");
+    } body {
+        synchronized(this.lock) {
+            this.vertices[arrayPosition] = cast(shared) vertex;
+            replaceVertex_(arrayPosition, vertex);
+        }
+    }
+
+    Vertex[] getVertices() @trusted nothrow {
+        return cast(Vertex[]) this.vertices;
     }
     
     abstract void cleanup() @system;
     
+    abstract protected void replaceVertices_() @system;
+    abstract protected void replaceVertex_(size_t pos, Vertex v) @system;
     abstract protected void render_(Renderer renderer) @system;
 }

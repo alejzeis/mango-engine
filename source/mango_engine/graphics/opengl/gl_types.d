@@ -180,6 +180,12 @@ class VBO {
         glBufferData(type, cast(size_t) (data.length * uint.sizeof), data.ptr, usage);
     }
 
+    void setSubData(GLvoid* data, GLintptr offset, GLsizei length) @system {
+        bind();
+
+        glBufferSubData(type, offset, length, data);
+    }
+
     /// Frees resources used by the buffer (deletes it).
     void cleanup() @system nothrow {
         glDeleteBuffers(1, &_vbo);

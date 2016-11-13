@@ -107,7 +107,7 @@ version(mango_GLBackend) {
             verticesVBO.bind();
             verticesVBO.setDataRaw(
                 cast(void*) positionVerticesToFloats(cast(Vertex[]) vertices),
-                cast(GLsizei) (vertices.length * vec3.sizeof) // Single vertex is a vec3
+                cast(GLsizei) (vertices.length * vec3.sizeof) // Single vertex is a vec3 * the amount of vertices
             );
 
             glEnableVertexAttribArray(0);
@@ -144,6 +144,57 @@ version(mango_GLBackend) {
                     }
                     vao.unbind();
                     vao.cleanup();
+                });
+            }
+
+            protected void replaceVertices_() @system {
+                this.game.renderer.submitOperation(() {
+                    this.vao.bind();
+
+                    VBO verticesVBO = cast(VBO) this.vboList[VBOIndexes.VBO_VERTICES];
+
+                    verticesVBO.bind();
+                    verticesVBO.setDataRaw( // Replace buffer with new vertex buffer
+                        cast(void*) positionVerticesToFloats(cast(Vertex[]) this.vertices),
+                        cast(GLsizei) (vertices.length * vec3.sizeof) // Single vertex is a vec3 * the amount of vertices
+                    );
+
+                    if(cast(TexturedVertex[]) this.vertices) {
+                        VBO texturesVBO = cast(VBO) this.vboList[VBOIndexes.VBO_TEXTURES];
+
+                        texturesVBO.bind();
+                        texturesVBO.setDataRaw( // Replace buffer with new texture vertex buffer
+                            cast(void*) textureVerticesToFloats(cast(Vertex[]) vertices),
+                            cast(GLsizei) (vertices.length * vec2.sizeof)
+                        );
+                    }
+
+                    this.vao.unbind();
+                });              
+            }
+
+            protected void replaceVertex_(size_t pos, Vertex v) @system {
+                this.game.renderer.submitOperation(() {
+                    this.vao.bind();
+
+                    VBO verticesVBO = cast(VBO) this.vboList[VBOIndexes.VBO_VERTICES];
+                    verticesVBO.bind();
+                    verticesVBO.setSubData( // Replace the vertex
+                         cast(void*) positionVerticesToFloats([v]),
+                         (pos * vec3.sizeof), vec3.sizeof // Single vertex is a vec3 * the amount of vertices
+                    );
+
+                    if(cast(TexturedVertex[]) this.vertices && cast(TexturedVertex) v) {
+                        VBO texturesVBO = cast(VBO) this.vboList[VBOIndexes.VBO_TEXTURES];
+
+                        texturesVBO.bind();
+                        texturesVBO.setSubData( // Replace the Vertex
+                            cast(void*) textureVerticesToFloats([v]),
+                            (pos * vec2.sizeof), vec2.sizeof // Vec2 is the size of a single texture vertex
+                        );
+                    }
+
+                    this.vao.unbind();
                 });
             }
         
