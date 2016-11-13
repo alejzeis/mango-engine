@@ -43,11 +43,19 @@ import gl3n.linalg;
 
 /// Struct that represents a Vertex with a vec3 (position)
 class Vertex {
-    /// Vector containing the Vertex's coordinates (3D).
-    vec3 position;
+    shared float x;
+    shared float y;
+    shared float z;
 
-    this(vec3 position) @trusted nothrow {
-        position = cast(shared) position;
+    /// Vector containing the Vertex's coordinates (3D).
+    vec3 positionToVec3() @safe nothrow {
+        return vec3(x, y, z);
+    }
+
+    this(vec3 position) @safe nothrow {
+        this.x = position.x;
+        this.y = position.y;
+        this.z = position.z;
     }
 }
 
@@ -57,12 +65,18 @@ class Vertex {
     vector (vec2).
 +/
 class TexturedVertex : Vertex {
-    /// Vector containing the texture coordinates.
-    vec2 texture;
+    shared float tX;
+    shared float tY;
 
-    this(vec3 position, vec2 texture) @trusted nothrow {
+    /// Vector containing the texture coordinates.
+    vec2 textureToVec2() @safe nothrow {
+        return vec2(tX, tY);
+    }
+
+    this(vec3 position, vec2 texture) @safe nothrow {
         super(position);
-        this.texture = texture;
+        this.tX = texture.x;
+        this.tY = texture.y;
     }
 }
 

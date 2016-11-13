@@ -93,7 +93,7 @@ version(mango_GLBackend) {
                 import std.stdio;
                 writeln(indices);
                 foreach(v; (cast(Vertex[]) vertices)) {
-                    writeln(v.position);
+                    writeln(v.positionToVec3());
                 }
             }
 

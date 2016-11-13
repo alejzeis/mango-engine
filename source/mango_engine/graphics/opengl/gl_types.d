@@ -45,9 +45,9 @@ float[] positionVerticesToFloats(Vertex[] vertices) @safe {
     // TODO: Will have to adapt when more vectors are added
     float[] data;
     foreach(vertex; vertices) {
-        data ~= vertex.position.x;
-        data ~= vertex.position.y;
-        data ~= vertex.position.z;
+        data ~= vertex.x;
+        data ~= vertex.y;
+        data ~= vertex.z;
     }
     return data;
 }
@@ -62,8 +62,8 @@ float[] textureVerticesToFloats(Vertex[] vertices) @trusted {
         throw new Exception("Vertices not type of TexturedVertex!");
     }
     foreach(vertex; (cast(TexturedVertex[]) vertices)) {
-        data ~= vertex.texture.x;
-        data ~= vertex.texture.y;
+        data ~= vertex.tX;
+        data ~= vertex.tY;
     }
     return data;
 }
