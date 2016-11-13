@@ -84,7 +84,7 @@ version(mango_GLBackend) {
                 shared GLShader shader_ = cast(shared GLShader) shader;
 
                 this.game.renderer.submitOperation(() {
-                    debug {
+                    debug(mango_GLShaderInfo) {
                         import std.stdio;
                         writeln("Attaching: ", shader_.shaderId);
                     }
@@ -117,16 +117,7 @@ version(mango_GLBackend) {
         }
 
         private void setup() @system {
-            debug {
-                import std.stdio;
-                writeln("TYPE: ", type, "previous ", this.shaderId);
-            }
             this.shaderId = glCreateShader(shaderTypeToGL(type));
-
-            debug {
-                import std.stdio;
-                writeln("Set to ", this.shaderId);
-            }
             
             char* source = toCString(this.source);
             glShaderSource(this.shaderId, 1, &source, null);
@@ -135,7 +126,7 @@ version(mango_GLBackend) {
         override {
             protected void onShaderAdd() @system {
                 this.game.renderer.submitOperation(() {
-                    debug {
+                    debug(mango_GLShaderInfo) {
                         import std.stdio;
                         writeln("Compiling Shader! ", this.shaderId);
                     }

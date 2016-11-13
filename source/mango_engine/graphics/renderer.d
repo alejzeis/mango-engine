@@ -69,11 +69,7 @@ abstract class Renderer {
     }
 
     void switchScene(Scene scene) @trusted {
-        send(threadTid, SwitchSceneMessage(cast(shared) scene));
-        debug {
-            import std.stdio;
-            writeln("sent");
-        }
+        prioritySend(threadTid, SwitchSceneMessage(cast(shared) scene));
     }
 
     void submitOperation(RendererOperation operation) @trusted {
@@ -96,10 +92,6 @@ abstract class Renderer {
     private bool processOperation() @system {
         return receiveTimeout(0.msecs,
             (SwitchSceneMessage m) {
-                debug {
-                    import std.stdio;
-                    writeln("Receieved: ", (cast(Scene) m.scene).models.length);
-                }
                 this._scene = m.scene;
             },
             (RendererOperationMessage m) {
