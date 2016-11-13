@@ -71,7 +71,7 @@ abstract class Logger {
 
     abstract void logError(in string message) @safe;
 
-    abstract void logException(Exception e) @safe;
+    abstract void logException(in string messageInfo, Exception e) @safe;
 }
 
 class ConsoleLogger : Logger {
@@ -117,12 +117,12 @@ class ConsoleLogger : Logger {
             }
         }
 
-        void logException(Exception e) @trusted {
+        void logException(in string messageInfo, Exception e) @trusted {
             string filename = "exceptionDump_" ~ getTimestamp() ~ ".txt";
             debug {
                 logError(e.toString());
             }
-            logError("An exception report has been dumped to " ~ filename);
+            logError("An exception report has been saved to " ~ filename);
 
             File file = File(filename, "w");
             file.writeln("Mango-Engine exception dump at " ~ getTimestamp());
@@ -134,6 +134,8 @@ class ConsoleLogger : Logger {
             file.writeln("size_t length: " ~ to!string(size_t.sizeof));
             file.writeln("CPU: " ~ vendor ~ " " ~ processor ~ " with " ~ to!string(coresPerCPU()) ~ " cores");
             file.writeln("------------------------------------------");
+            file.writeln("Additional Information: " ~ messageInfo);
+            file.writeln("In Thread: " ~ Thread.getThis().name);
             file.writeln("Exception: \n");
             file.write(e.toString());
             file.close();

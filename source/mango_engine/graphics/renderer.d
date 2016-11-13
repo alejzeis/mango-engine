@@ -107,7 +107,7 @@ abstract class Renderer {
                     m.operation();
                 } catch(Exception e) {
                     GLOBAL_LOGGER.logError("Error while processing operation!");
-                    GLOBAL_LOGGER.logException(e);
+                    GLOBAL_LOGGER.logException("Exception in Renderer thread", e);
                     _running = false;
                 }
             }

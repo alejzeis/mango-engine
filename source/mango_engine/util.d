@@ -231,7 +231,12 @@ private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
     GLOBAL_LOGGER.logDebug("Starting worker #" ~ to!string(id));
 
     ThreadWorker worker = new ThreadWorker(id, pool);
-    worker.doRun();
+    try {
+        worker.doRun();
+    } catch(Exception e) {
+        GLOBAL_LOGGER.logError("A worker thread has crashed!");
+        GLOBAL_LOGGER.logException("Worker thread #" ~ to!string(id) ~ " exception caught, crashed", e);
+    }
 }
 
 string getTimestamp() @safe {
