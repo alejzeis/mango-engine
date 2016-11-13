@@ -59,7 +59,7 @@ version(mango_GLBackend) {
     }
 
     class GLTexture : Texture {
-        __gshared package GLuint textureId;
+        package shared GLuint textureId;
 
         this(GameManager game, in string filename, in bool useAlpha = true) @safe {
             super(game, filename, useAlpha);
@@ -80,7 +80,10 @@ version(mango_GLBackend) {
             _width = FreeImage_GetWidth(map);
             _height = FreeImage_GetHeight(map);
 
-            glGenTextures(1, &this.textureId);
+            GLuint id;
+
+            glGenTextures(1, &id);
+            this.textureId = id;
             use();
 
             setOptions();
@@ -102,7 +105,9 @@ version(mango_GLBackend) {
 
         override void cleanup() @system {
             this.game.renderer.submitOperation(() {
-                glDeleteTextures(1, &this.textureId);
+                GLuint id = this.textureId;
+                
+                glDeleteTextures(1, &id);
             });
         }
     }

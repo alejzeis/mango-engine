@@ -62,7 +62,7 @@ class TexturedVertex : Vertex {
 
     this(vec3 position, vec2 texture) @trusted nothrow {
         super(position);
-        this.texture = cast(shared) texture;
+        this.texture = texture;
     }
 }
 

@@ -89,6 +89,14 @@ version(mango_GLBackend) {
             _vao = cast(shared) VAO.generateNew();
             vao.bind();
 
+            debug {
+                import std.stdio;
+                writeln(indices);
+                foreach(v; (cast(Vertex[]) vertices)) {
+                    writeln(v.position);
+                }
+            }
+
             auto indicesVBO = new VBO(GL_ELEMENT_ARRAY_BUFFER);
             indicesVBO.bind();
             indicesVBO.setData(indices);

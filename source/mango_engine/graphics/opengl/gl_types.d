@@ -73,9 +73,9 @@ class VAO {
     private GLuint _vao;
 
     /// GLuint id for the VAO.
-    @property GLuint vao() @safe nothrow { return _vao; }
+    @property GLuint vao() @trusted nothrow { return _vao; }
 
-    private this(GLuint vao) @safe nothrow {
+    private this(GLuint vao) @trusted nothrow {
         _vao = vao;
     }
 
@@ -116,9 +116,9 @@ class VBO {
     private GLuint _vbo;
 
     /// The VBO's GLuint id.
-    @property GLuint vbo() @safe nothrow { return _vbo; }
+    @property GLuint vbo() @trusted nothrow { return _vbo; }
     /// The VBO Type, ex. GL_ARRAY_BUFFER.
-    @property GLenum type() @safe nothrow { return _type; }
+    @property GLenum type() @trusted nothrow { return _type; }
 
     /++
         Create a new VBO with the specified type.

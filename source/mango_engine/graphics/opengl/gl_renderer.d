@@ -38,10 +38,15 @@ version(mango_GLBackend) {
     import derelict.glfw3.glfw3;
 
     class GLRenderer : Renderer {
-        private __gshared GLFWwindow* windowId;
+        private GLFWwindow* windowId;
 
-        package void registerWindowId(GLFWwindow* window) @trusted nothrow {
+        package void registerWindowId(GLFWwindow* window) @trusted {
             this.windowId = window;
+
+            submitOperation(() {
+                glClearColor(0f, 1f, 0f, 0f);
+                glEnable(GL_TEXTURE_2D);
+            });
         }
 
         override void render() @system {

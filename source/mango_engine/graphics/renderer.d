@@ -44,6 +44,10 @@ struct RendererOperationMessage {
     shared RendererOperation operation;
 }
 
+struct SwitchSceneMessage {
+    shared Scene scene;
+}
+
 /// Backend interface class: represents a Renderer.
 abstract class Renderer {
     private __gshared Tid threadTid;
@@ -64,6 +68,14 @@ abstract class Renderer {
         mixin(InterfaceClassFactory!("renderer", "Renderer", ""));
     }
 
+    void switchScene(Scene scene) @trusted {
+        send(threadTid, SwitchSceneMessage(cast(shared) scene));
+        debug {
+            import std.stdio;
+            writeln("sent");
+        }
+    }
+
     void submitOperation(RendererOperation operation) @trusted {
         send(threadTid, RendererOperationMessage(operation));
     }
@@ -71,7 +83,7 @@ abstract class Renderer {
     private void doRun() @system {
         do {
             uint counter = 0;
-            while(processOperation() != false && counter < 15) {
+            while(processOperation() != false && counter < 50) {
                 counter++;
             }
 
@@ -83,6 +95,13 @@ abstract class Renderer {
 
     private bool processOperation() @system {
         return receiveTimeout(0.msecs,
+            (SwitchSceneMessage m) {
+                debug {
+                    import std.stdio;
+                    writeln("Receieved: ", (cast(Scene) m.scene).models.length);
+                }
+                this._scene = m.scene;
+            },
             (RendererOperationMessage m) {
                 try {
                     m.operation();
