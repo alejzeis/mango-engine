@@ -1,2 +1,2 @@
-# mango-engine
+# mango-engine [![Travis](https://img.shields.io/travis/jython234/mango-engine.svg?style=flat-square)](https://travis-ci.org/jython234/mango-engine)
 Another D game engine project...
