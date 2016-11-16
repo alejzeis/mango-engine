@@ -79,11 +79,16 @@ abstract class Renderer {
     private void doRun() @system {
         do {
             uint counter = 0;
-            while(processOperation() != false && counter < 50) {
-                counter++;
+            try {
+                while(processOperation() != false && counter < 50) {
+                    counter++;
+                }
+            } catch(Exception e) {
+                GLOBAL_LOGGER.logError("Error while processing operation!");
+                GLOBAL_LOGGER.logException("Exception in Renderer thread", e);
+                _running = false;
+                break;
             }
-
-            if(running == false) break; // Check if processOperation caught exception
 
             render();
         } while(running);
@@ -95,13 +100,7 @@ abstract class Renderer {
                 this._scene = m.scene;
             },
             (RendererOperationMessage m) {
-                try {
-                    m.operation();
-                } catch(Exception e) {
-                    GLOBAL_LOGGER.logError("Error while processing operation!");
-                    GLOBAL_LOGGER.logException("Exception in Renderer thread", e);
-                    _running = false;
-                }
+                m.operation();
             }
         );
     }
