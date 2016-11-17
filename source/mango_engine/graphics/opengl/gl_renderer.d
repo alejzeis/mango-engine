@@ -46,6 +46,7 @@ version(mango_GLBackend) {
             submitOperation(() {
                 glClearColor(0f, 1f, 0f, 0f);
                 glEnable(GL_TEXTURE_2D);
+                glEnable(GL_BLEND);
             });
         }
 

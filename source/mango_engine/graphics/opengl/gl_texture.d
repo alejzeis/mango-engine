@@ -69,6 +69,7 @@ version(mango_GLBackend) {
 
         void use() @system nothrow {
             glBindTexture(GL_TEXTURE_2D, this.textureId);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }
 
         private void doLoad() @trusted {
@@ -88,7 +89,7 @@ version(mango_GLBackend) {
 
             setOptions();
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, useAlpha ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, FreeImage_GetBits(map));
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, useAlpha ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, FreeImage_GetBits(map));
             glGenerateMipmap(GL_TEXTURE_2D);
 
             FreeImage_Unload(map);
