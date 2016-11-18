@@ -33,6 +33,7 @@ module mango_engine.game;
 
 import mango_engine.mango;
 import mango_engine.logging;
+import mango_engine.resource;
 import mango_engine.event.core;
 import mango_engine.graphics.window;
 import mango_engine.graphics.renderer;
@@ -139,6 +140,7 @@ class GameManager {
     private shared Renderer _renderer;
     
     private shared EventManager _eventManager;
+    private shared ResourceManager _resourceManager;
     private shared Logger _logger;
 
     /// Returns: The Window this GameManager is rendering to.
@@ -147,6 +149,8 @@ class GameManager {
     @property Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
     /// Returns: The EventManager this GameManager is using to handle events.
     @property EventManager eventManager() @trusted nothrow { return cast(EventManager) _eventManager; }
+    /// Returns: The ResourceManager used to load and manage resources from the disk (such as textures).
+    @property ResourceManager resourceManager() @trusted nothrow { return cast(ResourceManager) _resourceManager; }
     /// Returns: The Logger this GameManager is using for Logging.
     @property Logger logger() @trusted nothrow { return cast(Logger) _logger; }
 
@@ -161,6 +165,7 @@ class GameManager {
         this._window = cast(shared) window;
         
         this._eventManager = cast(shared) new EventManager(this);
+        this._resourceManager = cast(shared) new ResourceManager(this);
 
         window.gamemanager_notify(this); // Tell Window that we have been created
     }
