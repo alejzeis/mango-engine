@@ -239,6 +239,35 @@ private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
     }
 }
 
+version(Windows) {
+    immutable string PATH_SEPERATOR = "\\";
+} else {
+    immutable string PATH_SEPERATOR = "/";
+}
+
+string getTempDirectoryPath() @trusted {
+    version(Windows) {
+        import core.sys.windows.winbase : GetTempPath, DWORD;
+
+        void[] data = new void[128];
+        DWORD length = GetTempPath(128, data);
+        return cast(string) data[0..length];
+    } else version(Posix) {
+        import core.stdc.stdlib : getenv;
+        import blocksound.util : toCString, toDString;
+
+        auto env = getenv(toCString("TMPDIR"));
+        auto dir = toDString(env);
+        if(dir == "") {
+            return "/tmp";
+        } else {
+            return dir;
+        }
+    } else {
+        return "./tmp";
+    }
+}
+
 string getTimestamp() @safe {
     import std.datetime : SysTime, Clock;
     import std.conv : to;
