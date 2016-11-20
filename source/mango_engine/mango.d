@@ -32,7 +32,10 @@
 module mango_engine.mango;
 
 import mango_engine.game;
+import mango_engine.util;
 import mango_engine.logging;
+
+import std.file;
 
 /// The Global logger for Mango-Engine. This is statically initalized.
 __gshared Logger GLOBAL_LOGGER;
@@ -71,6 +74,8 @@ abstract class EngineInitalizer {
 +/
 GameManagerFactory mango_init(BackendType type) @trusted {
     GLOBAL_LOGGER.logInfo("Mango-Engine version " ~ VERSION ~ ", built with " ~ __VENDOR__ ~ " on " ~ __TIMESTAMP__);
+
+    checkTempDirs();
     
     version(mango_GLBackend) {
         import mango_engine.graphics.opengl.gl_backend : GLInitalizer;
@@ -84,4 +89,14 @@ GameManagerFactory mango_init(BackendType type) @trusted {
     }
 
     throw new Exception("No backend has been compiled in!");
+}
+
+private void checkTempDirs() @trusted {
+    auto tempDir = getTempDirectoryPath() ~ PATH_SEPERATOR ~ "mango-engine";
+    if(!exists(tempDir) || !isDir(tempDir)) {
+        mkdir(tempDir); // Create a new temp directory for mango-engine.
+    } else {
+        rmdirRecurse(tempDir); // Clear the temp directory
+        mkdir(tempDir); // Create a new temp directory for mango-engine.
+    }
 }

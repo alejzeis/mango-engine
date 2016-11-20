@@ -36,6 +36,8 @@ import mango_engine.util;
 
 /// Interface Class: Represents a Texture (an image)
 abstract class Texture {
+    /// The texture's name or identifier.
+    immutable string name;
     /// The file path of where the texture is located.
     immutable string filename;
     /// If to use alpha when reading.
@@ -53,8 +55,9 @@ abstract class Texture {
 
     @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
-    protected this(GameManager game, in string filename, in bool useAlpha = true) @trusted nothrow {
+    protected this(GameManager game, in string name, in string filename, in bool useAlpha = true) @trusted nothrow {
         this._game = cast(shared) game;
+        this.name = name;
         this.filename = filename;
         this.useAlpha = useAlpha;
     }
@@ -72,8 +75,8 @@ abstract class Texture {
                             
         Returns: A new loaded Texture instance using the selected backend.
     +/
-    static Texture build(GameManager game, in string filename, in bool useAlpha = true) @safe {
-        mixin(InterfaceClassFactory!("texture", "Texture", "game, filename, useAlpha"));
+    static Texture build(GameManager game, in string name, in string filename, in bool useAlpha = true) @safe {
+        mixin(InterfaceClassFactory!("texture", "Texture", "game, name, filename, useAlpha"));
     }
 
     /// Cleans up resources used by the Texture.

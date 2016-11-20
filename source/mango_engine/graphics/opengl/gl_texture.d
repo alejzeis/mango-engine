@@ -61,8 +61,8 @@ version(mango_GLBackend) {
     class GLTexture : Texture {
         package shared GLuint textureId;
 
-        this(GameManager game, in string filename, in bool useAlpha = true) @safe {
-            super(game, filename, useAlpha);
+        this(GameManager game, in string name, in string filename, in bool useAlpha = true) @safe {
+            super(game, name, filename, useAlpha);
 
             this.game.renderer.submitOperation(&this.doLoad);
         }
