@@ -74,10 +74,9 @@ version(mango_GLBackend) {
         }
 
         private ShouldThrow fi_missingSymbolCB(string symbolName) @safe {
-            version(mango_warnOnMissingSymbol) {
-                logger.logWarn("Missing FreeImage Symbol! " ~ symbolName);
+            version(mango_noWarnOnMissingSymbol) {
             } else {
-                logger.logDebug(" (WARNING) Missing FreeImage Symbol! " ~ symbolName);
+                logger.logWarn("(Minor) Missing FreeImage Symbol! " ~ symbolName);
             }
             return ShouldThrow.No;
         }

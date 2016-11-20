@@ -21,6 +21,8 @@ private void checkTextureJSON(ZipArchive archive, JSONValue root) @trusted {
 class ResourceManager {
     private shared GameManager _game;
 
+    private shared Texture[string] loadedTextures;
+
     @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
 
     this(GameManager game) @trusted nothrow {
@@ -55,6 +57,8 @@ class ResourceManager {
                         break;
                 }
 
+                enforce(!(textureName in loadedTextures), new Exception("Texture is already loaded!"));
+
                 zip.expand(zip.directory[textureFile]); // Uncompress the texture file
 
                 // The path in mango-engine's temp directory which will contain the uncompressed texture
@@ -62,11 +66,34 @@ class ResourceManager {
 
                 write(uncompressedPath, zip.directory[textureFile].expandedData); // Write the uncompressed texture to disk
                 
-                return Texture.build(game, textureName, uncompressedPath, useAlpha);
+                Texture texture = Texture.build(game, textureName, uncompressedPath, useAlpha);
+
+                loadedTextures[textureName] = cast(shared) texture;
+
+                return texture;
             }
         }
 
         throw new MArchiveParseException("Invalid Archive! Failed to find texture.json!");
+    }
+
+    Texture getLoadedTexture(in string name) @trusted {
+        enforce(name in loadedTextures, new Exception("The texture is not loaded!"));
+
+        return cast(Texture) loadedTextures[name];
+    }
+
+    void unloadTexture(in string name) @trusted {
+        enforce(name in loadedTextures, new Exception("The texture is not loaded!"));
+
+        Texture t = cast(Texture) loadedTextures[name];
+        t.cleanup();
+
+        loadedTextures.remove(name);
+    }
+
+    bool isTextureLoaded(in string name) @safe {
+        return name in loadedTextures ? true : false;
     }
 }
 

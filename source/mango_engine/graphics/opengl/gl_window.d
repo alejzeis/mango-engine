@@ -148,6 +148,7 @@ version(mango_GLBackend) {
                     if(this.window is null) return;
                     
                     if(glfwWindowShouldClose(this.window)) {
+                        this.game.logger.logDebug("Window closing.");
                         this.game.stop();
                     }
                 }));

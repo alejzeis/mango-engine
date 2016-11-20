@@ -93,10 +93,16 @@ GameManagerFactory mango_init(BackendType type) @trusted {
 
 private void checkTempDirs() @trusted {
     auto tempDir = getTempDirectoryPath() ~ PATH_SEPERATOR ~ "mango-engine";
+    GLOBAL_LOGGER.logDebug("Temporary directory is " ~ tempDir);
+
     if(!exists(tempDir) || !isDir(tempDir)) {
         mkdir(tempDir); // Create a new temp directory for mango-engine.
+        
+        GLOBAL_LOGGER.logDebug("Created new temporary directory.");
     } else {
         rmdirRecurse(tempDir); // Clear the temp directory
         mkdir(tempDir); // Create a new temp directory for mango-engine.
+
+        GLOBAL_LOGGER.logDebug("Cleaned temporary directory.");
     }
 }
