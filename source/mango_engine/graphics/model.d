@@ -52,6 +52,11 @@ class Vertex {
         return vec3(x, y, z);
     }
 
+    /// Creates a copy of the vertex.
+    Vertex duplicate() @safe nothrow {
+        return new Vertex(vec3(this.x, this.y, this.z));
+    }
+
     this(vec3 position) @safe nothrow {
         this.x = position.x;
         this.y = position.y;
@@ -71,6 +76,10 @@ class TexturedVertex : Vertex {
     /// Vector containing the texture coordinates.
     vec2 textureToVec2() @safe nothrow {
         return vec2(tX, tY);
+    }
+
+    override Vertex duplicate() @safe nothrow {
+        return new TexturedVertex(vec3(this.x, this.y, this.z), vec2(this.tX, this.tY));
     }
 
     this(vec3 position, vec2 texture) @safe nothrow {
@@ -145,9 +154,25 @@ class Model {
             replaceVertex_(arrayPosition, vertex);
         }
     }
+    
+    final Vertex getVertex(size_t arrayPosition) @trusted 
+    in {
+        assert(arrayPosition < this.vertices.length, "Invalid arrayPosition (greater than array size!)");
+    } body {
+        synchronized(this.lock) {
+            return (cast(Vertex) this.vertices[arrayPosition]).duplicate();
+        }
+    }
 
     Vertex[] getVertices() @trusted nothrow {
         return cast(Vertex[]) this.vertices;
+    
+    
+    }
+
+    /// Allows returning the lock used for preventing changes while renderering.
+    shared(Lock) getRenderingLock() @safe nothrow {
+        return this.lock;
     }
     
     abstract void cleanup() @system;
