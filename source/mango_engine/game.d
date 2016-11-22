@@ -195,8 +195,7 @@ class GameManager {
 
             TickEvent te = new TickEvent(ticks);
 
-            this.eventManager.fireEvent(te);
-            this.eventManager.update();
+            this.eventManager.update(te);
 
             if(!renderer.running) {
                 this.logger.logError("It appears the renderer thread has crashed! Exiting...");
@@ -222,7 +221,7 @@ class GameManager {
         }
         
         this.eventManager.fireEvent(new EngineCleanupEvent());
-        this.eventManager.update(0);
+        this.eventManager.update(null, 0);
     }
 
     /++

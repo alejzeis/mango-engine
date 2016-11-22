@@ -74,6 +74,7 @@ class WindowTitleChangeEvent : WindowEvent {
     }
 }
 
+deprecated("Had too much latency. Use Window.registerInputHook()") 
 class WindowKeyPressedEvent : WindowEvent {
     /++
         The key which was pressed. The values

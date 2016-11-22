@@ -137,13 +137,29 @@ class EventManager {
     }
 
     /// Update function called by GameManager
-    void update(size_t limit = 25) @trusted {
-    	if(this.eventQueue.isEmpty()) return;
-    	
+    void update(TickEvent te, size_t limit = 25) @trusted {
     	if(limit == 0) {
     		limit = size_t.max;
     	}
-        
+
+        if(te is null)
+            goto handleEvents;
+
+        if(te.classinfo.name in this.hooks) {
+            foreach(EventHook hook; this.hooks[te.classinfo.name]) {
+                if(hook.runAsync) { // Check if we can run this in a worker
+                    pool.submitWork(() {
+                        hook.hook(cast(Event) te);
+                    }, te.classinfo.name);
+                } else {
+                    hook.hook(cast(Event) te);
+                }
+            }
+        }
+
+handleEvents:   
+        if(this.eventQueue.isEmpty()) return;
+
     	while(!this.eventQueue.isEmpty() && (limit-- > 0)) {
     		Event event = this.eventQueue.pop();
             synchronized(this.hookLock) {
@@ -151,10 +167,10 @@ class EventManager {
                     foreach(EventHook hook; this.hooks[event.classinfo.name]) {
                         if(hook.runAsync) { // Check if we can run this in a worker
                             pool.submitWork(() {
-                                debug {
+                                /*debug {
                                     import std.stdio;
-                                    //writeln("Executing: ", event.classinfo.name);
-                                }
+                                    writeln("Executing: ", event.classinfo.name);
+                                }*/
                                 hook.hook(cast(Event) event);
                             }, event.classinfo.name);
                         } else {

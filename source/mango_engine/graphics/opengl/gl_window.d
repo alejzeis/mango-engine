@@ -140,6 +140,7 @@ version(mango_GLBackend) {
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
                     if(!keyEventQueue.isEmpty()) {
                         KeyEvent keyEvent = keyEventQueue.pop();
+                        //this.executeHook(keyEvent.key);
                         this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
                     }
                 }, false)); // TODO: get to work on it's own thread?

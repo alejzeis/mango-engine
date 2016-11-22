@@ -36,6 +36,8 @@ import mango_engine.game;
 import mango_engine.event.graphics;
 import mango_engine.graphics.renderer;
 
+import mango_stl.misc;
+
 /// Represents different screen sync types
 enum SyncType {
     /// No sync
@@ -53,6 +55,9 @@ class WindowContextFailedException : Exception {
     }   
 }
 
+// TODO: Seperate input handling into a seperate InputManager?
+alias InputHook = void delegate() @system;
+
 /// Backend interface class: represents a window.
 abstract class Window {
     immutable SyncType syncType;
@@ -64,6 +69,9 @@ abstract class Window {
     private shared uint _width;
     private shared uint _height;
     private shared bool _visible = false;
+
+    private shared InputHook[][uint] inputHooks;
+    private shared Lock inputHookLock;
 
     @property protected GameManager game() @trusted nothrow { return cast(GameManager) _game; }
     @property protected Renderer renderer() @trusted nothrow { return cast(Renderer) _renderer; }
@@ -97,10 +105,21 @@ abstract class Window {
         this._title = title;
         this._width = width;
         this._height = height;
+
+        this.inputHookLock = new Lock();
     }
 
     static Window build(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) {
         mixin(InterfaceClassFactory!("window", "Window", "renderer, title, width, height, syncType"));
+    }
+
+    /++
+        Register a hook to be called when a specific key is pressed.
+    +/
+    void registerInputHook(in uint key, InputHook hook) @safe {
+        synchronized(this.inputHookLock) {
+            this.inputHooks[key] ~= hook;
+        }
     }
 
     /++
@@ -117,6 +136,15 @@ abstract class Window {
     } body {
         this._game = cast(shared) game;
         onGamemanager_notify();
+    }
+
+    /// Use this in a backend class to immediately execute all input hooks for a specific key.
+    protected final void executeHook(in uint key) @system {
+        if(key in this.inputHooks) {
+            foreach(hook; this.inputHooks[key]) {
+                hook();
+            }
+        }
     }
 
     protected abstract void onGamemanager_notify() @system;
