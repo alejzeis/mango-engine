@@ -194,7 +194,7 @@ class ThreadWorker {
         import std.datetime;
         import core.thread;
 
-        do {
+        while(running) {
             bool recieved = receiveTimeout(0.msecs,
                 (string s) {
                     if(s == "stop") {
@@ -205,15 +205,16 @@ class ThreadWorker {
                     this.workQueue.add(work);
                 }
             );
-            if(this.workQueue.isEmpty()) continue;
 
-            Work work = this.workQueue.pop();
-            work.work();
+            if(!this.workQueue.isEmpty()) {
+                Work work = this.workQueue.pop();
+                work.work();
 
-            if(this.workQueue.isEmpty()) {
-                this.pool.notifyBusy(this.id, false);
-            } else this.pool.notifyBusy(this.id, true);
-        } while(running);
+                if(this.workQueue.isEmpty()) {
+                    this.pool.notifyBusy(this.id, false);
+                } else this.pool.notifyBusy(this.id, true);
+            }
+        }
 
         debug(mango_concurrencyInfo) {
             import std.stdio;
