@@ -34,9 +34,8 @@ module mango_engine.event.core;
 import mango_engine.game;
 import mango_engine.util;
 
-import mango_stl.collections;
-
 import std.conv;
+import std.container.dlist;
 
 /// Represents a callable event with properties.
 abstract class Event {
@@ -80,7 +79,7 @@ class EventManager {
 		private ThreadPool pool;
 		private GameManager game;
 		
-		private Queue!Event eventQueue;
+		private DList!Event eventQueue;
 	}
 	
 	private shared SyncLock hookLock;
@@ -92,7 +91,7 @@ class EventManager {
 		this.game = game;
 		this.game.logger.logInfo("This CPU has " ~ to!string(coresPerCPU()) ~ " cores avaliable. Assigning one worker thread to each.");
 		this.pool = new ThreadPool(coresPerCPU());
-		this.eventQueue = new Queue!Event();
+		this.eventQueue = DList!Event();
 		
 		this.hookLock = new SyncLock();
 		
@@ -113,10 +112,7 @@ class EventManager {
                 event =  The Event to be fired.    
     +/
     void fireEvent(Event event) @trusted {
-        this.eventQueue.add(event); // Queue is thread-safe
-        debug {
-            //this.eventQueue.debugDump();
-        }
+        this.eventQueue.insertFront(event);
     }
 
     /++
@@ -158,11 +154,13 @@ class EventManager {
         }
 
 handleEvents:   
-        if(this.eventQueue.isEmpty()) return;
+        if(this.eventQueue.empty) return;
 
-    	while(!this.eventQueue.isEmpty() && (limit-- > 0)) {
-    		Event event = this.eventQueue.pop();
+    	while(!this.eventQueue.empty && (limit-- > 0)) {
             synchronized(this.hookLock) {
+                Event event = this.eventQueue.front;
+                this.eventQueue.removeFront();
+
                 if(event.classinfo.name in this.hooks) {
                     foreach(EventHook hook; this.hooks[event.classinfo.name]) {
                         if(hook.runAsync) { // Check if we can run this in a worker

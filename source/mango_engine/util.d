@@ -31,10 +31,10 @@
 */
 module mango_engine.util;
 
-import mango_stl.collections;
 import mango_stl.misc : Lock;
 
 import std.concurrency;
+import std.container.dlist;
 import std.conv;
 import core.atomic;
 
@@ -182,12 +182,12 @@ class ThreadWorker {
 
     private bool running = true;
 
-    private Queue!Work workQueue;
+    private DList!Work workQueue;
 
     this(in size_t id, shared(ThreadPool) pool) @safe nothrow {
         this.id = id;
         this.pool = pool;
-        this.workQueue = new Queue!Work();
+        this.workQueue = DList!Work();
     }
 
     void doRun() @trusted {
@@ -202,15 +202,16 @@ class ThreadWorker {
                     }
                 },
                 (Work work) {
-                    this.workQueue.add(work);
+                    this.workQueue.insertBack(work);
                 }
             );
 
-            if(!this.workQueue.isEmpty()) {
-                Work work = this.workQueue.pop();
+            if(!this.workQueue.empty) {
+                Work work = this.workQueue.front;
+                this.workQueue.removeFront();
                 work.work();
 
-                if(this.workQueue.isEmpty()) {
+                if(this.workQueue.empty) {
                     this.pool.notifyBusy(this.id, false);
                 } else this.pool.notifyBusy(this.id, true);
             }
