@@ -41,11 +41,11 @@ version(mango_GLBackend) {
     import mango_engine.graphics.opengl.gl_renderer;
 
     import blocksound.util : toCString, toDString; // TODO: move to mango_stl
-    import mango_stl.collections;
 
     import derelict.glfw3.glfw3;
     import derelict.opengl3.gl3 : glViewport, glGetString, GL_VERSION, GL_RENDERER, GL_VENDOR;
 
+    import std.container.dlist;
     import std.conv;
 
     private struct KeyEvent {
@@ -56,14 +56,14 @@ version(mango_GLBackend) {
         int mods;
     }
 
-    private __gshared UnsafeQueue!KeyEvent keyEventQueue;
+    private __gshared DList!KeyEvent keyEventQueue;
 
     extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
         glViewport(0, 0, width, height); // Tell OpenGL the window was resized
     }
     
     extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
-        keyEventQueue.add(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
+        keyEventQueue.insertFront(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
     }
 
     class GLWindow : Window {
@@ -74,9 +74,8 @@ version(mango_GLBackend) {
         this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted {
             super(renderer, title, width, height, syncType);
 
-            if(keyEventQueue is null) {
-                keyEventQueue = new UnsafeQueue!KeyEvent();
-            } else keyEventQueue.clear();
+            if(!keyEventQueue.empty)
+                keyEventQueue.clear();
 
             renderer.submitOperation(&this.setupWindow);
         }
@@ -138,8 +137,9 @@ version(mango_GLBackend) {
 
             protected void onGamemanager_notify() @system {
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
-                    if(!keyEventQueue.isEmpty()) {
-                        KeyEvent keyEvent = keyEventQueue.pop();
+                    if(!keyEventQueue.empty) {
+                        KeyEvent keyEvent = keyEventQueue.front;
+                        keyEventQueue.removeFront();
                         //this.executeHook(keyEvent.key);
                         this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
                     }
