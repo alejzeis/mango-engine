@@ -34,6 +34,7 @@ module mango_engine.graphics.opengl.gl_window;
 version(mango_GLBackend) {
     import mango_engine.graphics.window;
     import mango_engine.mango;
+    import mango_engine.input;
     import mango_engine.event.core;
     import mango_engine.event.graphics;
     import mango_engine.graphics.renderer;
@@ -140,8 +141,8 @@ version(mango_GLBackend) {
                     if(!keyEventQueue.empty) {
                         KeyEvent keyEvent = keyEventQueue.front;
                         keyEventQueue.removeFront();
-                        //this.executeHook(keyEvent.key);
-                        this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
+                        this.game.inputManager.sendInputEventMessage(INPUT_TYPE_KEY, new KeyInputData(keyEvent.key));
+                        //this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
                     }
                 }, false)); // TODO: get to work on it's own thread?
 
