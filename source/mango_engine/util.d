@@ -234,11 +234,15 @@ private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
 
     ThreadWorker worker = new ThreadWorker(id, pool);
     try {
-        worker.doRun();
+        worker.doRun(); 
+    } catch(OwnerTerminated e) {
+        GLOBAL_LOGGER.logDebug("Worker thread crashed (Main Thread terminated).");
     } catch(Exception e) {
         GLOBAL_LOGGER.logError("A worker thread has crashed!");
         GLOBAL_LOGGER.logException("Worker thread #" ~ to!string(id) ~ " exception caught, crashed", e);
     }
+
+    GLOBAL_LOGGER.logDebug("thread exit");
 }
 
 version(Windows) {

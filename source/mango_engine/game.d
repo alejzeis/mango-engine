@@ -179,7 +179,17 @@ class GameManager {
         Main run method. This will block
         until the Game has finished running.
     +/
-    void run() @trusted {
+    void run() @safe {
+        try {
+            _run();
+        } catch(Exception e) {
+            logger.logError("The main Game thread has crashed!");
+            logger.logException("Exception in Game thread! ", e);
+            
+        }
+    }
+
+    private void _run() @trusted {
         enforce(!this.running, new Exception("Game is already running!"));
 
         this.running = true;

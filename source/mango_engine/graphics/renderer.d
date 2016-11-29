@@ -77,21 +77,23 @@ abstract class Renderer {
     }
 
     private void doRun() @system {
-        do {
+        while(_running) {
             uint counter = 0;
             try {
                 while(processOperation() != false && counter < 50) {
                     counter++;
                 }
+            } catch(OwnerTerminated e) {
+                GLOBAL_LOGGER.logError("Renderer thread crashed (Main Thread terminated)!");
             } catch(Exception e) {
                 GLOBAL_LOGGER.logError("Error while processing operation!");
                 GLOBAL_LOGGER.logException("Exception in Renderer thread", e);
                 _running = false;
-                break;
+                return;
             }
 
             render();
-        } while(running);
+        }
     }
 
     private bool processOperation() @system {
@@ -117,4 +119,6 @@ private void startRendererThread(shared Renderer renderer) @system {
 
     Thread.getThis().name = "Renderer";
     (cast(Renderer) renderer).doRun();
+
+     GLOBAL_LOGGER.logDebug("thread exit");
 }

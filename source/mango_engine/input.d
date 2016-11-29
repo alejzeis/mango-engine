@@ -122,5 +122,14 @@ private void spawnInputThread(shared InputManager manager) @system {
 
     Thread.getThis().name = "InputManager";
 
-    (cast(InputManager) manager).run();
+    try {
+        (cast(InputManager) manager).run();
+    } catch(OwnerTerminated e) {
+        GLOBAL_LOGGER.logDebug("Input Thread crashed (Main Thread terminated).");
+    } catch(Exception e) {
+        GLOBAL_LOGGER.logError("Input Thread has crashed!");
+        GLOBAL_LOGGER.logException("Exception in Input Thread! ", e);
+    }
+
+    GLOBAL_LOGGER.logDebug("thread exit");
 }
