@@ -119,6 +119,4 @@ private void startRendererThread(shared Renderer renderer) @system {
 
     Thread.getThis().name = "Renderer";
     (cast(Renderer) renderer).doRun();
-
-     GLOBAL_LOGGER.logDebug("thread exit");
 }

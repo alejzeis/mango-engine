@@ -130,6 +130,4 @@ private void spawnInputThread(shared InputManager manager) @system {
         GLOBAL_LOGGER.logError("Input Thread has crashed!");
         GLOBAL_LOGGER.logException("Exception in Input Thread! ", e);
     }
-
-    GLOBAL_LOGGER.logDebug("thread exit");
 }

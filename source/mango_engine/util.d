@@ -241,8 +241,6 @@ private void spawnWorker(shared(size_t) id, shared(ThreadPool) pool) @system {
         GLOBAL_LOGGER.logError("A worker thread has crashed!");
         GLOBAL_LOGGER.logException("Worker thread #" ~ to!string(id) ~ " exception caught, crashed", e);
     }
-
-    GLOBAL_LOGGER.logDebug("thread exit");
 }
 
 version(Windows) {

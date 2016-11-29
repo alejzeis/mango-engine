@@ -42,6 +42,7 @@ import std.zip;
 import std.file;
 import std.json;
 import std.array;
+import std.algorithm;
 import std.exception;
 
 private void checkTextureJSON(ZipArchive archive, JSONValue root) @trusted {
@@ -62,7 +63,7 @@ class ResourceManager {
 
     Texture loadTexture(in string location) @trusted {
         enforce(exists(location), "File " ~ location ~ " does not exist!");
-        enforce(split(location, ".")[1] == "marchive", "File " ~ location ~ " is not a valid .marchive file!");
+        enforce(location.endsWith(".marchive"), "File " ~ location ~ " is not a valid .marchive file!");
 
         auto zip = new ZipArchive(read(location));
         foreach(name, am; zip.directory) {
