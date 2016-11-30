@@ -32,66 +32,91 @@
 module mango_engine.graphics.renderer;
 
 import mango_engine.mango;
-import mango_engine.game;
-import mango_engine.event.core;
-import mango_engine.graphics.backend;
-import mango_engine.graphics.model;
+import mango_engine.util;
 import mango_engine.graphics.scene;
 
-/++
-    The main class that handles rendering
-    on the screen.
-+/
+import std.concurrency;
+import std.datetime;
+
+alias RendererOperation = void delegate() @system;
+
+struct RendererOperationMessage {
+    shared RendererOperation operation;
+}
+
+struct SwitchSceneMessage {
+    shared Scene scene;
+}
+
+/// Backend interface class: represents a Renderer.
 abstract class Renderer {
-    private GameManager _game;
+    private __gshared Tid threadTid;
+
     private shared Scene _scene;
 
-    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+    private shared bool _running;
 
-    /// The scene that is currently being rendered.
-    @property Scene scene() @trusted nothrow { return cast(Scene) _scene; }
-    /// The scene that is currently being rendered.
-    void setScene(Scene scene) @trusted nothrow {
-        scene.isRendering = true;
-        if(_scene !is null)
-            _scene.isRendering = false;
-         
-        _scene = cast(shared) scene; 
+    @property Scene scene() @trusted nothrow { return cast(Scene) _scene;}
+    @property bool running() @safe nothrow { return _running; }
+    
+    protected this() @trusted {
+        _running = true;
+        threadTid = spawn(&startRendererThread, cast(shared) this);
     }
 
-    protected this(GameManager game) @safe {
-        this._game = game;
-
-        game.eventManager.registerEventHook(TickEvent.classinfo.name,
-            EventHook(&this.evtHook_render, false)
-        ); // TODO: PROCESS RENDERING IN SEPERATE THREAD!
+    static Renderer build() @safe {
+        mixin(InterfaceClassFactory!("renderer", "Renderer", ""));
     }
 
-    static Renderer rendererFactory(GameManager game, GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_renderer : GLRenderer;
-
-        mixin(GenFactory!("Renderer", "game"));
+    void switchScene(Scene scene) @trusted {
+        prioritySend(threadTid, SwitchSceneMessage(cast(shared) scene));
     }
 
-    private void evtHook_render(Event e) @system {
-        render();
+    void submitOperation(RendererOperation operation) @trusted {
+        send(threadTid, RendererOperationMessage(operation));
     }
 
-    /// Render the scene
-    final void render() @trusted {
-        prepareRender();
-        foreach(model; scene.models) {
-            renderModel(cast(shared) model); //TODO: synchronization
+    private void doRun() @system {
+        while(_running) {
+            uint counter = 0;
+            try {
+                while(processOperation() != false && counter < 50) {
+                    counter++;
+                }
+            } catch(OwnerTerminated e) {
+                GLOBAL_LOGGER.logError("Renderer thread crashed (Main Thread terminated)!");
+            } catch(Exception e) {
+                GLOBAL_LOGGER.logError("Error while processing operation!");
+                GLOBAL_LOGGER.logException("Exception in Renderer thread", e);
+                _running = false;
+                return;
+            }
+
+            render();
         }
-        finishRender();
     }
 
-    protected void prepareRender() @system {
-
+    private bool processOperation() @system {
+        return receiveTimeout(0.msecs,
+            (SwitchSceneMessage m) {
+                this._scene = m.scene;
+            },
+            (RendererOperationMessage m) {
+                m.operation();
+            }
+        );
     }
-    protected void finishRender() @system {
 
+    void stop() @safe nothrow {
+        _running = false;
     }
+    
+    abstract void render() @system;
+}
 
-    protected abstract void renderModel(shared Model model) @system;
+private void startRendererThread(shared Renderer renderer) @system {
+    import core.thread : Thread;
+
+    Thread.getThis().name = "Renderer";
+    (cast(Renderer) renderer).doRun();
 }

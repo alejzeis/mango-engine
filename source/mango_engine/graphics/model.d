@@ -31,24 +31,36 @@
 */
 module mango_engine.graphics.model;
 
-import mango_engine.mango;
-import mango_engine.util;
 import mango_engine.game;
-import mango_engine.event.graphics;
-import mango_engine.graphics.backend;
+import mango_engine.util;
 import mango_engine.graphics.renderer;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
+
+import mango_stl.misc;
 
 import gl3n.linalg;
 
 /// Struct that represents a Vertex with a vec3 (position)
 class Vertex {
+    shared float x;
+    shared float y;
+    shared float z;
+
     /// Vector containing the Vertex's coordinates (3D).
-    vec3 position;
+    vec3 positionToVec3() @safe nothrow {
+        return vec3(x, y, z);
+    }
+
+    /// Creates a copy of the vertex.
+    Vertex duplicate() @safe nothrow {
+        return new Vertex(vec3(this.x, this.y, this.z));
+    }
 
     this(vec3 position) @safe nothrow {
-        this.position = position;
+        this.x = position.x;
+        this.y = position.y;
+        this.z = position.z;
     }
 }
 
@@ -58,18 +70,31 @@ class Vertex {
     vector (vec2).
 +/
 class TexturedVertex : Vertex {
+    shared float tX;
+    shared float tY;
+
     /// Vector containing the texture coordinates.
-    vec2 texture;
+    vec2 textureToVec2() @safe nothrow {
+        return vec2(tX, tY);
+    }
+
+    override Vertex duplicate() @safe nothrow {
+        return new TexturedVertex(vec3(this.x, this.y, this.z), vec2(this.tX, this.tY));
+    }
 
     this(vec3 position, vec2 texture) @safe nothrow {
         super(position);
-        this.texture = texture;
+        this.tX = texture.x;
+        this.tY = texture.y;
     }
 }
 
-abstract class Model {
-    private GameManager game;
-    private SyncLock lock;
+/// Represents a Model which can be rendered. A Model has a Shader and a Texture
+class Model {
+    immutable string name;
+
+    private shared GameManager _game;
+    private shared Lock lock;
 
     protected shared Vertex[] vertices;
     protected shared uint[] _indices;
@@ -86,11 +111,14 @@ abstract class Model {
         }
     }
     
-    @property ShaderProgram shader() @trusted  nothrow { return cast(ShaderProgram) _shader; }
+    @property ShaderProgram shader() @trusted nothrow { return cast(ShaderProgram) _shader; }
 
-    protected this(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
-        this.game = game;
-        this.lock = new SyncLock();
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    protected this(in string name, GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @trusted nothrow {
+        this.name = name;
+        this._game = cast(shared) game;
+        this.lock = new Lock();
 
         this.vertices = cast(shared) vertices;
         this._indices = cast(shared) indices;
@@ -99,19 +127,57 @@ abstract class Model {
         this._shader = cast(shared) shader;
     }
 
-    static Model modelFactory(GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader, GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_model : GLModel;
-
-        mixin(GenFactory!("Model", "game, vertices, indices, texture, shader"));
+    static Model build(in string name, GameManager game, Vertex[] vertices, uint[] indices, Texture texture, ShaderProgram shader) @safe {
+        mixin(InterfaceClassFactory!("model", "Model", "name, game, vertices, indices, texture, shader"));
     }
 
-    void render(Renderer renderer) @system {
-        game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
-        synchronized(lock) {
+    final void render(Renderer renderer) @system {
+        //game.eventManager.fireEvent(new ModelRenderBeginEvent(cast(shared) this));
+        synchronized(this.lock) {
             render_(renderer);
         }
     }
+
+    final void replaceVertices(Vertex[] vertices) @trusted {
+        synchronized(this.lock) {
+            this.vertices = cast(shared) vertices;
+            replaceVertices_();
+        }
+    }
+
+    final void replaceVertex(size_t arrayPosition, Vertex vertex) @trusted 
+    in {
+        assert(arrayPosition < this.vertices.length, "Invalid arrayPosition (greater than array size!)");
+    } body {
+        synchronized(this.lock) {
+            this.vertices[arrayPosition] = cast(shared) vertex;
+            replaceVertex_(arrayPosition, vertex);
+        }
+    }
+    
+    final Vertex getVertex(size_t arrayPosition) @trusted 
+    in {
+        assert(arrayPosition < this.vertices.length, "Invalid arrayPosition (greater than array size!)");
+    } body {
+        synchronized(this.lock) {
+            return (cast(Vertex) this.vertices[arrayPosition]).duplicate();
+        }
+    }
+
+    Vertex[] getVertices() @trusted nothrow {
+        return cast(Vertex[]) this.vertices;
+    
+    
+    }
+
+    /// Allows returning the lock used for preventing changes while renderering.
+    shared(Lock) getRenderingLock() @safe nothrow {
+        return this.lock;
+    }
+    
     abstract void cleanup() @system;
     
+    abstract protected void replaceVertices_() @system;
+    abstract protected void replaceVertex_(size_t pos, Vertex v) @system;
     abstract protected void render_(Renderer renderer) @system;
 }

@@ -31,80 +31,40 @@
 */
 module mango_engine.graphics.scene;
 
-import mango_engine.util;
-import mango_engine.exception;
+import mango_engine.game;
 import mango_engine.graphics.model;
 import mango_engine.graphics.texture;
 import mango_engine.graphics.shader;
 
-import std.exception : enforce;
+import mango_stl.misc;
 
-/// Represents a Scene with Models
+import std.exception;
+
+/// A basic scene which can have multiple models. 
 class Scene {
-    immutable string name; 
+    private shared GameManager _game;
+    private shared Model[string] _models;
 
-    private shared size_t modelCounter = 0;
+    @property Model[string] models() @trusted nothrow { return cast(Model[string]) _models; }
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game;}
 
-    private shared SyncLock modelLock;
-    private shared SyncLock textureLock;
-    private shared SyncLock shaderLock;
-
-    package shared Model[size_t] models;
-    package shared Texture[string] textures;
-    package shared ShaderProgram[string] shaders;
-
-    package bool isRendering = false;
-
-    this(in string name) @safe nothrow {
-        this.name = name;
-
-        modelLock = new SyncLock();
-        textureLock = new SyncLock();
-        shaderLock = new SyncLock();
+    this(GameManager game) @trusted nothrow {
+        this._game = cast(shared) game;
     }
 
-    size_t addModel(Model model) @trusted {
-        import core.atomic : atomicOp;
+    void addModel(Model model) @trusted {
+        enforce(!(model.name in this.models), new Exception("Model \"" ~ model.name ~ "\" is already in this scene!"));
 
-        synchronized(modelLock) {
-            this.models[atomicOp!"+="(modelCounter, 1)] = cast(shared) model;
-            return modelCounter;
+        synchronized(this) {
+            _models[model.name] = cast(shared) model;
         }
     }
 
-    void addTexture(in string textureName, Texture texture) @trusted {
-        synchronized(textureLock) {
-            this.textures[textureName] = cast(shared) texture;
-        }
-    }
+    void removeModel(in string modelName) @safe {
+        enforce(modelName in this.models, new Exception("Model \"" ~ modelName ~ "\" is already in this scene!"));
 
-    void addShader(in string shaderName, ShaderProgram shader) @trusted {
-        synchronized(shaderLock) {
-            this.shaders[shaderName] = cast(shared) shader;
-        }
-    }
-
-    void removeModel(in size_t modelId) @safe {
-        synchronized(modelLock) {
-            enforce(modelId in this.models, new InvalidArgumentException("Invalid modelId! (not a valid key)"));
-
-            this.models.remove(modelId);
-        }
-    }
-
-    void removeTexture(in string textureName) @safe {
-        synchronized(textureLock) {
-            enforce(textureName in this.textures, new InvalidArgumentException("Invalid textureName (not a valid key)"));
-
-            this.textures.remove(textureName);
-        }
-    }
-
-    void removeShader(in string shaderName) @safe {
-        synchronized(shaderLock) {
-            enforce(shaderName in this.shaders, new InvalidArgumentException("Invalid shaderName (not a valid key)"));
-
-            this.shaders.remove(shaderName);
+        synchronized(this) {
+            _models.remove(modelName);
         }
     }
 }

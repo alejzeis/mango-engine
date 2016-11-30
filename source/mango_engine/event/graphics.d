@@ -29,25 +29,65 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+/// Graphics related events
 module mango_engine.event.graphics;
-// Graphics related Events
 
-import mango_engine.mango;
 import mango_engine.event.core;
-import mango_engine.graphics.model;
 
-/// Base class for all Graphics Events
+import mango_engine.graphics.window;
+
+/// Base class for an event related to graphics.
 abstract class GraphicsEvent : Event {
 
 }
 
-/// This event is fired when a Model is about to be rendered.
-class ModelRenderBeginEvent : GraphicsEvent {
-    private shared Model _model;
+/// Base class for an event related to a Window.
+class WindowEvent : GraphicsEvent {
+    private shared Window _window;
 
-    @property Model model() @trusted nothrow { return cast(Model) _model; }
+    @property Window window() @trusted nothrow { return cast(Window) this._window; }
 
-    this(shared Model model) @safe nothrow {
-        this._model = model;
+    this(Window window) @trusted nothrow {
+        this._window = cast(shared) window;
+    }
+}
+
+class WindowShowEvent : WindowEvent {
+    this(Window window) @safe nothrow {
+        super(window);
+    }
+}
+
+class WindowHideEvent : WindowEvent {
+    this(Window window) @safe nothrow {
+        super(window);
+    }
+}
+
+class WindowTitleChangeEvent : WindowEvent {
+    immutable string name;
+
+    this(in string name, Window window) @safe nothrow {
+        super(window);
+        
+        this.name = name;
+    }
+}
+
+deprecated("Use InputManager instead") 
+class WindowKeyPressedEvent : WindowEvent {
+    /++
+        The key which was pressed. The values
+        are found in derelict.glfw3.glfw3.
+
+        For example, the A key's value is
+        GLFW_KEY_A.
+    +/
+    immutable int key;
+    
+    this(in int key, Window window) @safe nothrow {
+        super(window);
+        
+        this.key = key;
     }
 }

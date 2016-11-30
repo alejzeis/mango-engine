@@ -29,9 +29,9 @@
  *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-import std.stdio;
+module mango_engine.world;
 
-void main()
-{
-	writeln("Edit source/app.d to start your project.");
+/// Represents an object in the world.
+class WorldObject {
+
 }

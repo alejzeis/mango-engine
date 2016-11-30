@@ -31,61 +31,12 @@
 */
 module mango_engine.graphics.shader;
 
-import mango_engine.mango;
+import mango_engine.game;
 import mango_engine.util;
-import mango_engine.exception;
-import mango_engine.graphics.backend;
 
-import std.exception : enforce;
+import mango_stl.misc;
 
-/++
-    Base class for a ShaderProgram. Implemented
-    by backends.
-    
-    This represents multiple shaders linked into a
-    program. Each shader is of a different type,
-    such as a Vertex Shader and Fragment Shader.
-+/
-abstract class ShaderProgram {
-    private shared Shader[ShaderType] shaders;
-    private SyncLock lock;
-
-    this() @safe nothrow {
-        lock = new SyncLock();
-    }
-
-    static ShaderProgram shaderProgramFactory(GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_shader : GLShaderProgram;
-
-        mixin(GenFactory!("ShaderProgram"));
-    }
-
-    void addShader(Shader shader) @trusted {
-        synchronized(lock) {
-            enforce(!(shader.type in shaders), new InvalidArgumentException("Attempted to add multiple shaders of same type."));
-    
-            shader.onShaderAdd();
-            addShader_(shader);
-            shaders[shader.type] = cast(shared) shader;
-        }
-    }
-
-    void removeShader(in ShaderType shaderType) @trusted {
-        synchronized(lock) {
-            enforce(shaderType in shaders, new InvalidArgumentException("Attempted to remove Shader that was not added."));
-    
-            removeShader_((cast(Shader)shaders[shaderType]));
-            (cast(Shader) shaders[shaderType]).onShaderRemove();
-            shaders.remove(shaderType);
-        }
-    }
-    
-    /// This is called after all the shaders have been added.
-    abstract void prepareProgram() @system;
-    
-    abstract void addShader_(Shader shader) @system;
-    abstract void removeShader_(Shader shader) @system;
-}
+import std.exception;
 
 /// Represents a type of Shader.
 enum ShaderType {
@@ -97,31 +48,85 @@ enum ShaderType {
     SHADER_COMPUTE
 }
 
-/++
-    The base shader class. All implementations
-    will extend this.
-+/
-abstract class Shader {
-    /// The shader's filename.
-    immutable string filename;
-    /// The shader's type
-    immutable ShaderType type;
+/// Represents a ShaderProgram that is executed
+abstract class ShaderProgram {
+    private shared GameManager _game;
+
+    private shared Shader[ShaderType] shaders;
+    private shared Lock lock;
+
+    /// The GameManager this ShaderProgram belongs to.
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    protected this(GameManager game) @trusted nothrow {
+        this._game = cast(shared) game;
+        this.lock = new Lock();
+    }
+
+    static ShaderProgram build(GameManager game) @safe {
+        mixin(InterfaceClassFactory!("shader", "ShaderProgram", "game"));
+    }
+
+    void addShader(Shader shader) @trusted {
+        synchronized(lock) {
+            enforce(!(shader.type in shaders), new Exception("Attempted to add multiple shaders of same type."));
     
-    protected this(in string filename, in ShaderType type) @safe nothrow {
-        this.filename = filename;
+            shader.onShaderAdd();
+            onShaderAdd(shader);
+            shaders[shader.type] = cast(shared) shader;
+        }
+    }
+
+    void removeShader(in ShaderType shaderType) @trusted {
+        synchronized(lock) {
+            enforce(shaderType in shaders, new Exception("Attempted to remove Shader that was not added."));
+    
+            onShaderRemove((cast(Shader)shaders[shaderType]));
+            (cast(Shader) shaders[shaderType]).onShaderRemove();
+            shaders.remove(shaderType);
+        }
+    }
+
+    void cleanup() @trusted {
+        foreach(type, shader; shaders) {
+            (cast(Shader) shader).cleanup();
+        }
+        shaders.clear();
+    }
+
+    /++
+        Prepares the ShaderProgram for use. Make
+        sure to call after adding all the shaders
+        to be used.
+    +/
+    abstract void prepareForUse() @trusted;
+
+    protected abstract void onShaderAdd(Shader shader) @system;
+    protected abstract void onShaderRemove(Shader shader) @system;
+}
+
+/// Represents an individual Shader which can be added to a ShaderProgram.
+abstract class Shader {
+    private shared GameManager _game;
+
+    immutable ShaderType type;
+
+    @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
+
+    protected this(GameManager game, in string source, in ShaderType type) @trusted nothrow {
+        this._game = cast(shared) game;
         this.type = type;
     }
-    
-    static Shader shaderFactory(in string filename, in ShaderType type, GraphicsBackendType backend) @safe {
-        import mango_engine.graphics.opengl.gl_shader : GLShader;
 
-        mixin(GenFactory!("Shader", "filename, type"));
+    static Shader build(GameManager game, in string source, in ShaderType type) @safe {
+        mixin(InterfaceClassFactory!("shader", "Shader", "game, source, type"));
     }
-    
+
+    protected abstract void onShaderAdd() @system;
+
     protected void onShaderRemove() @system {
         cleanup();
     }
 
-    protected abstract void onShaderAdd() @system;
     protected abstract void cleanup() @system;
 }

@@ -31,6 +31,24 @@
 */
 module mango_engine.logging;
 
+import mango_engine.mango : VERSION;
+import mango_engine.util : getTimestamp, getOSString, SyncLock;
+
+import consoled : writecln, FontStyle, Fg, resetColors, resetFontStyle;
+
+import std.stdio : write, writeln, File;
+import std.system : os;
+import std.conv : to;
+
+import core.thread : Thread;
+import core.cpuid : coresPerCPU, processor, vendor;
+
+private shared SyncLock consoleLock;
+
+shared static this() {
+    consoleLock = new SyncLock();
+}
+
 abstract class Logger {
     /// The name of the logger.
     immutable string name;
@@ -52,11 +70,11 @@ abstract class Logger {
     abstract void logWarn(in string message) @safe;
 
     abstract void logError(in string message) @safe;
+
+    abstract void logException(in string messageInfo, Exception e) @safe;
 }
 
 class ConsoleLogger : Logger {
-    import std.stdio : write, writeln;
-    import consoled;
 
     this(in string name) @safe nothrow {
         super(name);
@@ -64,27 +82,63 @@ class ConsoleLogger : Logger {
 
     override {
         void logDebug_(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(consoleLock) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightBlue, "DEBUG", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logInfo(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(consoleLock) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightGreen, "INFO", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logWarn(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(consoleLock) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightYellow, "WARN", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
         }
 
         void logError(in string message) @trusted {
-            writecln(FontStyle.bold, Fg.cyan, "[", name, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", FontStyle.none, Fg.white, message);
+            synchronized(consoleLock) {
+                writecln(FontStyle.bold, Fg.cyan, "[", name, Fg.magenta, "|", Thread.getThis().name, "|", Fg.cyan, "/", Fg.lightRed, "ERROR", Fg.cyan, "]: ", Fg.white, message);
 
-            resetColors();
+                resetColors();
+                resetFontStyle();
+            }
+        }
+
+        void logException(in string messageInfo, Exception e) @trusted {
+            string filename = "exceptionDump_" ~ getTimestamp() ~ ".txt";
+            debug {
+                logError(e.toString());
+            }
+            logError("An exception report has been saved to " ~ filename);
+
+            File file = File(filename, "w");
+            file.writeln("Mango-Engine exception dump at " ~ getTimestamp());
+            file.writeln("Mango-Engine version: " ~ VERSION);
+            file.writeln("Compiler: " ~ __VENDOR__ ~ ", compiled at: " ~ __TIMESTAMP__);
+            file.writeln("------------------------------------------");
+            file.writeln("System Information:");
+            file.writeln("Operating System: " ~ getOSString());
+            file.writeln("size_t length: " ~ to!string(size_t.sizeof));
+            file.writeln("CPU: " ~ vendor ~ " " ~ processor ~ " with " ~ to!string(coresPerCPU()) ~ " cores");
+            file.writeln("------------------------------------------");
+            file.writeln("Additional Information: " ~ messageInfo);
+            file.writeln("In Thread: " ~ Thread.getThis().name);
+            file.writeln("Exception: \n");
+            file.write(e.toString());
+            file.close();
         }
     }
 }

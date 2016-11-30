@@ -1,136 +1,108 @@
 /*
- *  Copyright 2016 Mango-Engine Team
+ *  BSD 3-Clause License
  *  
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *  Copyright (c) 2016, Mango-Engine Team
+ *  All rights reserved.
  *  
- *  	http://www.apache.org/licenses/LICENSE-2.0
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
  *  
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *  * Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *  
+ *  * Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *  
+ *  * Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ *  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ *  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 module mango_engine.mango;
 
+import mango_engine.game;
+import mango_engine.util;
 import mango_engine.logging;
 
-import std.conv;
+import std.file;
 
-version(mango_GLBackend) {
-    import mango_engine.graphics.opengl.gl_backend;
+/// The Global logger for Mango-Engine. This is statically initalized.
+__gshared Logger GLOBAL_LOGGER;
+/// The Version of the library.
+immutable string VERSION = "v2.0.0-SNAPSHOT";
+
+shared BackendType currentBackendType;
+
+static this() {
+    GLOBAL_LOGGER = new ConsoleLogger("Mango-Global");
+}
+
+/// The type of backend that the engine can/will use.
+enum BackendType {
+    BACKEND_OPENGL,
+    BACKEND_VULKAN
+}
+
+/// Class used to initalize the engine depending on the backend.
+abstract class EngineInitalizer {
+    protected Logger logger;
+
+    package this(Logger logger) @safe nothrow {
+        this.logger = logger;
+    }
+
+    abstract protected GameManagerFactory doInit() @trusted;
+
+    abstract protected void doDestroy() @trusted;
+}
+
+/++
+    Initalizes the engine. This will return a GameManagerFactory
+    instance, which can be used to construct a GameManager
+    instance.
++/
+GameManagerFactory mango_init(BackendType type) @trusted {
+    GLOBAL_LOGGER.logInfo("Mango-Engine version " ~ VERSION ~ ", built with " ~ __VENDOR__ ~ " on " ~ __TIMESTAMP__);
+
+    checkTempDirs();
     
-    private shared GLBackend glBackend;
-}
-
-version(mango_VKBackend) {
-    import mango_engine.graphics.vulkan.vk_backend;
-
-    private shared VKBackend vkBackend;
-}
-
-immutable string MANGO_VERSION = "v1.0.0-SNAPSHOT";
-
-/// Enum to represent different Graphics APIs used by the backend.
-enum GraphicsBackendType {
-    /// The OpenGL API.
-    API_OPENGL,
-    /// The Vulkan API.
-    API_VULKAN
-}
-
-/++
-    Determine if the engine has compiled with
-    OpenGL support enabled.
-
-    Returns: If the engine has support for
-             OpenGL.
-+/
-bool mango_hasGLSupport() @safe nothrow {
     version(mango_GLBackend) {
-        return true;
-    } else return false;
-}
+        import mango_engine.graphics.opengl.gl_backend : GLInitalizer;
 
-/++
-    Determine if the engine has compiled with
-    Vulkan support enabled.
+        currentBackendType = type;
 
-    Returns: If the engine has support for
-             Vulkan.
-+/
-bool mango_hasVKSupport() @safe nothrow {
-    version(mango_VKBackend) {
-        return true;
-    } else return false;
-}
-
-private shared bool hasInit = false;
-
-/++
-    Determine if the engine has been initalized.
-
-    Returns: If the engine has been initalized.
-+/
-bool mango_hasInitialized() @safe nothrow {
-    return hasInit;
-}
-
-/++
-    Initalize the engine. This will
-    load system libraries and set up
-    the engine for usage.
-+/
-void mango_init(GraphicsBackendType backendType) @system {
-    Logger logger = new ConsoleLogger("BackendInit");
-
-    logger.logInfo("Mango Engine version " ~ MANGO_VERSION ~ " built on \"" ~ __DATE__ ~ " " ~ __TIME__ ~ "\"");
-    logger.logDebug("Compiled with OpenGL support: " ~ to!string(mango_hasGLSupport()));
-    logger.logDebug("Compiled with Vulkan support: " ~ to!string(mango_hasVKSupport()));
-
-    debug(mango_debug_sysInfo) {
-        import std.stdio : writeln;
-        logger.logDebug("Initializing engine...");
+        if(type == BackendType.BACKEND_OPENGL) {
+            EngineInitalizer initalizer = new GLInitalizer(new ConsoleLogger("GLBackendInitalizer"));
+            return initalizer.doInit();
+        }
     }
 
-    final switch(backendType) {
-        case GraphicsBackendType.API_OPENGL:
-            version(mango_GLBackend) {
-                logger.logInfo("Initializing OpenGL backend.");
-                GLBackend _glBackend = new GLBackend(logger);
-                _glBackend.loadLibraries(); // TODO: ARGS
-                logger.logDebug("Loaded libraries.");
-
-                _glBackend.doInit();
-                glBackend = cast(shared) _glBackend;
-            } else throw new Exception("Mango-Engine was not compiled with OpenGL support!");
-            break;
-        case GraphicsBackendType.API_VULKAN:
-            version(mango_VKBackend) {
-                logger.logInfo("Initializing Vulkan backend.");
-                vkBackend = new VKBackend();
-                vkBackend.loadLibraries();
-                logger.logDebug("Loaded libraries.");
-
-                vkBackend.doInit();
-            } else throw new Exception("Mango-Engine was not compiled with Vulkan support!");
-    }
+    throw new Exception("No backend has been compiled in!");
 }
 
-/++
-    Destroy the engine. This will
-    free resources used by the library.
-+/
-void mango_destroy() @system {
-    version(mango_GLBackend) {
-        if(glBackend !is null)
-            (cast(GLBackend) glBackend).doDestroy();
-    }
+private void checkTempDirs() @trusted {
+    auto tempDir = getTempDirectoryPath() ~ PATH_SEPERATOR ~ "mango-engine";
+    GLOBAL_LOGGER.logDebug("Temporary directory is " ~ tempDir);
 
-    version(mango_VKBackend) {
-        if(vkBackend !is null)
-            vkBackend.doDestroy();
+    if(!exists(tempDir) || !isDir(tempDir)) {
+        mkdir(tempDir); // Create a new temp directory for mango-engine.
+        
+        GLOBAL_LOGGER.logDebug("Created new temporary directory.");
+    } else {
+        rmdirRecurse(tempDir); // Clear the temp directory
+        mkdir(tempDir); // Create a new temp directory for mango-engine.
+
+        GLOBAL_LOGGER.logDebug("Cleaned temporary directory.");
     }
 }

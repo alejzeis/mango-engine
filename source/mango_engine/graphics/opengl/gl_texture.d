@@ -31,77 +31,93 @@
 */
 module mango_engine.graphics.opengl.gl_texture;
 
-import mango_engine.graphics.texture;
-import mango_engine.graphics.opengl.gl_backend;
+version(mango_GLBackend) {
+    import mango_engine.game;
+    import mango_engine.graphics.texture;
 
-import derelict.opengl3.gl3;
-import derelict.freeimage.freeimage;
+    import blocksound.util : toCString;
 
-class GLTexture : Texture {
-    private GLuint textureId;
+    import derelict.opengl3.gl3;
+    import derelict.freeimage.freeimage;
 
-    /// Use Texture.textureFactory()
-    this(in string filename, in bool useAlpha = true) @safe {
-        super(filename, useAlpha);
-
-        gl_check();
-
-        load();
-    }
-
-    /// Binds the texture for OpenGL use
-    void bind() @system nothrow {
-        glBindTexture(GL_TEXTURE_2D, textureId);
-    }
-
-    private void load() @trusted {
-        FIBITMAP* bitmap = loadBitMap(filename);
-        if(!bitmap) {
-            throw new Exception("Failed to load texture \"" ~ filename ~ "\": null");
-        }
-
-        _width = FreeImage_GetWidth(bitmap);
-        _height = FreeImage_GetHeight(bitmap);
-
-        glGenTextures(1, &textureId);
-        bind();
-
-        setOptions();
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, useAlpha ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, FreeImage_GetBits(bitmap));
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        FreeImage_Unload(bitmap);
-    }
-
-    private void setOptions() @system {
-        // TODO: adjustable
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-
-    private FIBITMAP* loadBitMap(in string filename) @system {
-        import blocksound.util : toCString;
-
-        FIBITMAP* bitmap;
+    /// Uses FreeImage to load a BitMap.
+    FIBITMAP* loadImageBitMap(in string file) @system {
+        FIBITMAP* map;
         FREE_IMAGE_FORMAT format;
 
-        format = FreeImage_GetFileType(toCString(filename), 0);
+        format = FreeImage_GetFileType(toCString(file), 0);
+
         if(format == FIF_UNKNOWN) {
-            throw new Exception("Invalid format!");
+            throw new ImageLoadException(file ~ " has an unknown format!");
         }
         if(!FreeImage_FIFSupportsReading(format)) {
-            throw new Exception("FreeImage does not support reading file \"" ~ filename ~ "\"");
+            throw new ImageLoadException(file ~ " is not supported for reading!");
         }
-        
-        bitmap = FreeImage_Load(format, toCString(filename));
-        return bitmap;
+
+        map = FreeImage_Load(format, toCString(file));
+        return map;
     }
 
-    override void cleanup() @system nothrow {
-        glDeleteTextures(1, &textureId);
+    class GLTexture : Texture {
+        package shared GLuint textureId;
+
+        this(GameManager game, in string name, in string filename, in bool useAlpha = true) @safe {
+            super(game, name, filename, useAlpha);
+
+            this.game.renderer.submitOperation(&this.doLoad);
+        }
+
+        void use() @system nothrow {
+            glBindTexture(GL_TEXTURE_2D, this.textureId);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+
+        private void doLoad() @trusted {
+            FIBITMAP* map = loadImageBitMap(this.filename);
+            if(!map) {
+                throw new ImageLoadException("Failed to load Texture: " ~ filename);
+            }
+
+            _width = FreeImage_GetWidth(map);
+            _height = FreeImage_GetHeight(map);
+
+            GLuint id;
+
+            glGenTextures(1, &id);
+            this.textureId = id;
+            use();
+
+            setOptions();
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, useAlpha ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, FreeImage_GetBits(map));
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            FreeImage_Unload(map);
+        }
+
+        protected void setOptions() @system nothrow {
+            // TODO: adjustable
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }
+
+        override void cleanup() @system {
+            this.game.renderer.submitOperation(() {
+                GLuint id = this.textureId;
+                
+                glDeleteTextures(1, &id);
+            });
+        }
+    }
+}
+
+/// Exception related to loading images.
+class ImageLoadException : Exception {
+    /// Default constructor.
+    this(in string message) @safe nothrow {
+        super(message);
     }
 }
