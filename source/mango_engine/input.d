@@ -20,9 +20,11 @@ abstract class InputData {
 
 class KeyInputData : InputData {
     immutable size_t key;
+    immutable size_t state;
 
-    this(in size_t key) @safe nothrow {
+    this(in size_t key, in size_t state) @safe nothrow {
         this.key = key;
+        this.state = state;
     }
 }
 

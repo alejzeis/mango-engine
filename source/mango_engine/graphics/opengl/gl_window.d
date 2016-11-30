@@ -59,7 +59,6 @@ version(mango_GLBackend) {
     }
 
     private __gshared GameManager gamePtr;
-    private __gshared DList!KeyEvent keyEventQueue;
 
     extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
         glViewport(0, 0, width, height); // Tell OpenGL the window was resized
@@ -67,7 +66,7 @@ version(mango_GLBackend) {
     
     extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
         //keyEventQueue.insertBack(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
-        gamePtr.inputManager.sendInputEventMessage(INPUT_TYPE_KEY, new KeyInputData(key));
+        gamePtr.inputManager.sendInputEventMessage(INPUT_TYPE_KEY, new KeyInputData(key, action));
     }
 
     class GLWindow : Window {
@@ -77,9 +76,6 @@ version(mango_GLBackend) {
 
         this(Renderer renderer, in string title, in uint width, in uint height, SyncType syncType) @trusted {
             super(renderer, title, width, height, syncType);
-
-            if(!keyEventQueue.empty)
-                keyEventQueue.clear();
 
             renderer.submitOperation(&this.setupWindow);
         }
@@ -145,15 +141,6 @@ version(mango_GLBackend) {
 
             protected void onGamemanager_notify() @system {
                 gamePtr = this.game();
-
-                this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
-                    if(!keyEventQueue.empty) {
-                        KeyEvent keyEvent = keyEventQueue.front;
-                        keyEventQueue.removeFront();
-                        this.game.inputManager.sendInputEventMessage(INPUT_TYPE_KEY, new KeyInputData(keyEvent.key));
-                        //this.game.eventManager.fireEvent(new WindowKeyPressedEvent(keyEvent.key, this));
-                    }
-                }, false)); // TODO: get to work on it's own thread?
 
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
                     if(this.window is null) return;
