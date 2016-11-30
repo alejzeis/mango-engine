@@ -5,7 +5,10 @@ import mango_engine.game;
 import mango_engine.event.core;
 
 import std.concurrency;
+import std.container.dlist;
 import std.exception;
+
+import derelict.glfw3.glfw3;
 
 immutable size_t INPUT_TYPE_KEY;
 immutable size_t INPUT_TYPE_MOUSE;
@@ -27,7 +30,7 @@ class KeyInputData : InputData {
     This struct is message-passed to the InputManager thread,
     where it is then handled in it's corresponding hook.
 +/
-struct InputEventMessage {
+package struct InputEventMessage {
     /// The type of InputEvent
     shared size_t type;
     /// The input data
@@ -51,6 +54,7 @@ class InputManager {
     private shared bool _running = false;
 
     private shared InputHook[] hooks;
+    private DList!InputEventMessage events;
 
     @property GameManager game() @trusted nothrow { return cast(GameManager) _game; }
     @property bool running() @safe nothrow { return _running; }
@@ -58,6 +62,7 @@ class InputManager {
     this(GameManager game) @system {
         this._game = cast(shared) game;
         
+        this.events = DList!InputEventMessage();
         this._threadTid = cast(shared) spawn(&spawnInputThread, cast(shared) this);
 
         this.game.eventManager.registerEventHook(EngineCleanupEvent.classinfo.name,
@@ -81,7 +86,9 @@ class InputManager {
         GLOBAL_LOGGER.logDebug("Input Thread started.");
 
         while(this.running) {
-            receive(
+            import std.datetime;
+
+            receiveTimeout(1.msecs,
                 (ThreadSignal signal) {
                     switch(signal) {
                         case ThreadSignal.SIGNAL_STOP:
@@ -94,6 +101,13 @@ class InputManager {
                 },
                 &handleInputEventMessage,
             );
+
+            if(!this.events.empty) {
+                InputEventMessage msg = this.events.front;
+                this.events.removeFront();
+
+                handleInputEventMessage(msg);
+            }
         }
 
         GLOBAL_LOGGER.logDebug("Input Thread exiting.");
@@ -107,8 +121,9 @@ class InputManager {
         }
     }
 
-    void sendInputEventMessage(size_t type, InputData data) @system {
-        send((cast(Tid) this._threadTid), InputEventMessage(type, cast(shared) data));
+    void sendInputEventMessage(size_t type, InputData data) @system nothrow {
+        this.events.insertBack(InputEventMessage(type, cast(shared) data));
+        //send((cast(Tid) this._threadTid), new InputEventMessage(type, cast(shared) data));
     }
 
     /// Sends a THREAD_SIGNAL_STOP signal to the Thread.

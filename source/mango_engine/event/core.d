@@ -112,7 +112,7 @@ class EventManager {
                 event =  The Event to be fired.    
     +/
     void fireEvent(Event event) @trusted {
-        this.eventQueue.insertFront(event);
+        this.eventQueue.insertBack(event);
     }
 
     /++

@@ -34,6 +34,7 @@ module mango_engine.graphics.opengl.gl_window;
 version(mango_GLBackend) {
     import mango_engine.graphics.window;
     import mango_engine.mango;
+    import mango_engine.game;
     import mango_engine.input;
     import mango_engine.event.core;
     import mango_engine.event.graphics;
@@ -57,6 +58,7 @@ version(mango_GLBackend) {
         int mods;
     }
 
+    private __gshared GameManager gamePtr;
     private __gshared DList!KeyEvent keyEventQueue;
 
     extern(C) private void glfw_windowSizeCallback(GLFWwindow* window, int width, int height) @system nothrow {
@@ -64,7 +66,8 @@ version(mango_GLBackend) {
     }
     
     extern(C) private void glfw_keyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods) @system nothrow {
-        keyEventQueue.insertFront(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
+        //keyEventQueue.insertBack(KeyEvent(window, key, scancode, action, mods)); // Add the keyEvent to the queue
+        gamePtr.inputManager.sendInputEventMessage(INPUT_TYPE_KEY, new KeyInputData(key));
     }
 
     class GLWindow : Window {
@@ -110,6 +113,10 @@ version(mango_GLBackend) {
             (cast(GLRenderer) this.renderer).registerWindowId(this.window);
         }
 
+        GLFWwindow* getWindowPtr() @system nothrow {
+            return window;
+        }
+
         override {
             protected void setTitle_(in string title) @system {
                 this.renderer.submitOperation(() {
@@ -137,6 +144,8 @@ version(mango_GLBackend) {
             }
 
             protected void onGamemanager_notify() @system {
+                gamePtr = this.game();
+
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
                     if(!keyEventQueue.empty) {
                         KeyEvent keyEvent = keyEventQueue.front;
