@@ -145,13 +145,15 @@ class EventManager {
 
         if(te.classinfo.name in this.hooks) {
             foreach(EventHook hook; this.hooks[te.classinfo.name]) {
-                if(hook.runAsync) { // Check if we can run this in a worker
+                // TODO: work around issue #8
+                hook.hook(cast(Event) te);
+                /*if(hook.runAsync) { // Check if we can run this in a worker
                     pool.submitWork(() {
                         hook.hook(cast(Event) te);
                     }, te.classinfo.name);
                 } else {
                     hook.hook(cast(Event) te);
-                }
+                }*/
             }
         }
 

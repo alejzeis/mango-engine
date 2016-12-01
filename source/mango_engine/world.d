@@ -66,7 +66,7 @@ class WorldObject {
     private void update(Event e) @system {
         debug {
             import std.stdio;
-            writeln("ive been called 2");
+            //writeln("ive been called 2");
         }
         Vertex[] newVerticies = new Vertex[this.model.getVertices().length];
         for(size_t i = 0; i < this.model.getVertices().length; i++) {
