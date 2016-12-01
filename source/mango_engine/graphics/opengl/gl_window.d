@@ -143,6 +143,10 @@ version(mango_GLBackend) {
                 gamePtr = this.game();
 
                 this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook((Event e) {
+                    debug {
+                        import std.stdio;
+                        writeln("i've been called!");
+                    }
                     if(this.window is null) return;
                     
                     if(glfwWindowShouldClose(this.window)) {

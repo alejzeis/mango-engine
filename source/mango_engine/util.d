@@ -130,32 +130,33 @@ class ThreadPool {
             import std.stdio;
             writeln("Submitting to workers: ", debugTest);
         }
-        synchronized(workerLock) {
-            foreach(id, ref worker; this.workers) {
-                // Prioritize sending work to free workers
-                if(!worker.busy) {
-                    send(worker.tid, Work(work));
-                    return;
-                }
+
+        synchronized(this) {
+
+        /*foreach(id, ref worker; this.workers) {
+            // Prioritize sending work to free workers
+            if(!worker.busy) {
+                send(worker.tid, Work(work));
+                worker.busy = true;
+                return;
             }
+        }*/
 
-            // All workers busy
-            if(workerCounter >= workerNumber) {
-                workerCounter = 0; // Reset workerCounter
-            }
+        // All workers busy
+        if(workerCounter >= workerNumber) {
+            workerCounter = 0; // Reset workerCounter
+        }
 
-            // Send to the next worker. workerCounter distributes evenly work among the busy workers.
-            send(workers[workerCounter].tid, Work(work));
+        // Send to the next worker. workerCounter distributes evenly work among the busy workers.
+        send(workers[workerCounter].tid, Work(work));
 
-            atomicOp!"+="(this.workerCounter, 1);
+        atomicOp!"+="(this.workerCounter, 1);
         }
     }
 
     shared package void notifyBusy(in size_t id, in bool busy) @safe {
-        synchronized(workerLock) {
-            if(id > this.workers.length) return;
-            this.workers[id].busy = busy;
-        }
+        if(id > this.workers.length) return;
+        this.workers[id].busy = busy;
     }
 
     /// Each thread finishes it's current task and immediately stops. 
@@ -195,18 +196,23 @@ class ThreadWorker {
         import core.thread;
 
         while(running) {
-            bool recieved = receiveTimeout(0.msecs,
+            receive(
                 (string s) {
                     if(s == "stop") {
                         running = false;
                     }
                 },
                 (Work work) {
-                    this.workQueue.insertBack(work);
+                    //this.workQueue.insertBack(work);
+                    //this.pool.notifyBusy(this.id, true);
+                    work.work();
+                    //this.pool.notifyBusy(this.id, false);
                 }
             );
 
-            if(!this.workQueue.empty) {
+            /*if(!this.workQueue.empty) {
+                this.pool.notifyBusy(this.id, true);
+
                 Work work = this.workQueue.front;
                 this.workQueue.removeFront();
                 work.work();
@@ -214,7 +220,7 @@ class ThreadWorker {
                 if(this.workQueue.empty) {
                     this.pool.notifyBusy(this.id, false);
                 } else this.pool.notifyBusy(this.id, true);
-            }
+            }*/
         }
 
         debug(mango_concurrencyInfo) {
@@ -252,10 +258,11 @@ version(Windows) {
 string getTempDirectoryPath() @trusted {
     version(Windows) {
         import core.sys.windows.winbase : GetTempPath, DWORD;
+        import blocksound.util : toDString;
 
         void[] data = new void[128];
         DWORD length = GetTempPath(128, data);
-        return cast(string) data[0..length];
+        return toDString(cast(char[]) data[0..length]);
     } else version(Posix) {
         import core.stdc.stdlib : getenv;
         import blocksound.util : toCString, toDString;

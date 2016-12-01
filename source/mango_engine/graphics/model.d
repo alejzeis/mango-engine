@@ -166,8 +166,6 @@ class Model {
 
     Vertex[] getVertices() @trusted nothrow {
         return cast(Vertex[]) this.vertices;
-    
-    
     }
 
     /// Allows returning the lock used for preventing changes while renderering.

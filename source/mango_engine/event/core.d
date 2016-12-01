@@ -138,6 +138,8 @@ class EventManager {
     		limit = size_t.max;
     	}
 
+        bool a = false;
+
         if(te is null)
             goto handleEvents;
 

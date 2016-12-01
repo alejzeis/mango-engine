@@ -31,7 +31,51 @@
 */
 module mango_engine.world;
 
+import mango_engine.game;
+import mango_engine.event.core;
+import mango_engine.graphics.model;
+
 /// Represents an object in the world.
 class WorldObject {
+    private shared GameManager _game;
 
+    private shared Model _model;
+
+    private shared float _velocityX = 0f;
+    private shared float _velocityY = 0f;
+
+    @property GameManager game() @trusted nothrow { return cast(GameManager) this._game; }
+
+    @property Model model() @trusted nothrow { return cast(Model) this._model; }
+
+    /// Get this object's X velocity.
+    @property float velocityX() @safe nothrow { return this._velocityX; }
+    /// Set this object's X velocity.
+    @property void velocityX(float vx) @safe nothrow { this._velocityX = vx; }
+    /// Get this object's Y velocity.
+    @property float velocityY() @safe nothrow { return this._velocityY; }
+    /// Set this object's Y velocity.
+    @property void velocityY(float vy) @safe nothrow { this._velocityY = vy; }
+
+    this(GameManager game, Model model) @trusted {
+        this._game = cast(shared) game;
+        this._model = cast(shared) model;
+        this.game.eventManager.registerEventHook(TickEvent.classinfo.name, EventHook(&this.update, false));
+    }
+
+    private void update(Event e) @system {
+        debug {
+            import std.stdio;
+            writeln("ive been called 2");
+        }
+        Vertex[] newVerticies = new Vertex[this.model.getVertices().length];
+        for(size_t i = 0; i < this.model.getVertices().length; i++) {
+            newVerticies[i] = this.model.getVertex(i); // getVertex duplicates the vertex
+
+            newVerticies[i].x += velocityX;
+            newVerticies[i].y += velocityY;
+        }
+
+        this.model.replaceVertices(newVerticies);
+    }
 }
