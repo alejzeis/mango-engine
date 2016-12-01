@@ -35,6 +35,8 @@ import mango_engine.game;
 import mango_engine.event.core;
 import mango_engine.graphics.model;
 
+//import std.math;
+
 /// Represents an object in the world.
 class WorldObject {
     private shared GameManager _game;
@@ -77,5 +79,24 @@ class WorldObject {
         }
 
         this.model.replaceVertices(newVerticies);
+    }
+
+    bool checkCollision(WorldObject otherObject) @safe {
+        if(otherObject.model.getVertices().length != 4 || model.getVertices().length != 4) {
+            throw new Exception("Object is not a rectangle, collision not implemented.");
+        }
+
+        float d1x = otherObject.model.getVertex(2).x - model.getVertex(1).x;
+        float d1y = otherObject.model.getVertex(2).y - model.getVertex(1).y;
+        float d2x = model.getVertex(2).x - otherObject.model.getVertex(1).x;
+        float d2y = model.getVertex(2).y - otherObject.model.getVertex(1).y;
+
+        if (d1x > 0.0f || d1y > 0.0f)
+            return false;
+
+        if (d2x > 0.0f || d2y > 0.0f)
+            return false;
+
+        return true;
     }
 }
